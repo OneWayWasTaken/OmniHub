@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <!-- iOS / iPhone Viewport & Fullscreen PWA Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="OmniHub">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#090a0f">
+    <!-- Dynamic SVG Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="https://images.unsplash.com/photo-1614680376593-902f749f7ffc?auto=format&fit=crop&w=256&q=80">
+
+    <title>OmniHub • iOS & Desktop All-in-One Media Center</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        omni: {
+                            bg: '#090a0f',
+                            surface: '#12141d',
+                            card: '#181b26',
+                            cardHover: '#222636',
+                            border: '#262b3d',
+                            music: '#10b981',
+                            flix: '#e11d48',
+                            read: '#8b5cf6',
+                            play: '#06b6d4',
+                            lib: '#f59e0b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --accent: #10b981;
+            --accent-glow: rgba(16, 185, 129, 0.28);
+            --sat: env(safe-area-inset-top, 0px);
+            --sab: env(safe-area-inset-bottom, 0px);
+            --sal: env(safe-area-inset-left, 0px);
+            --sar: env(safe-area-inset-right, 0px);
+        }
+
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100dvh;
+            width: 100%;
+            overflow: hidden;
+            background-color: #090a0f;
+            overscroll-behavior-y: none;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* iOS Safe Area Utilities */
+        .pt-safe { padding-top: max(0.5rem, env(safe-area-inset-top)); }
+        .pb-safe { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+        .mb-safe { margin-bottom: env(safe-area-inset-bottom); }
+
+        /* Hide scrollbars on horizontal carousels while keeping smooth touch scroll */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+
+        /* Desktop Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #090a0f; }
+        ::-webkit-scrollbar-thumb { background: #262b3d; border-radius: 9999px; }
+
+        /* Dynamic Accent Utilities */
+        .accent-bg { background-color: var(--accent); }
+        .accent-text { color: var(--accent); }
+        .accent-border { border-color: var(--accent); }
+        .accent-shadow { box-shadow: 0 8px 25px -4px var(--accent-glow); }
+
+        /* iOS Glassmorphism */
+        .ios-glass {
+            background: rgba(18, 20, 29, 0.84);
+            backdrop-filter: saturate(180%) blur(22px);
+            -webkit-backdrop-filter: saturate(180%) blur(22px);
+        }
+
+        /* Range Sliders - Touch Friendly */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+            touch-action: none;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            height: 6px;
+            border-radius: 999px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #ffffff;
+            margin-top: -6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.65);
+        }
+
+        /* Equalizer Animation */
+        @keyframes eq-bounce {
+            0%, 100% { height: 4px; }
+            50% { height: 15px; }
+        }
+        .eq-1 { animation: eq-bounce 0.6s infinite ease-in-out 0.1s; }
+        .eq-2 { animation: eq-bounce 0.8s infinite ease-in-out 0.25s; }
+        .eq-3 { animation: eq-bounce 0.55s infinite ease-in-out 0.4s; }
+        .eq-4 { animation: eq-bounce 0.75s infinite ease-in-out 0.15s; }
+
+        /* Reader Themes */
+        .reader-dark { background-color: #11131a; color: #e2e8f0; }
+        .reader-sepia { background-color: #f4ecd8; color: #3c2f2f; }
+        .reader-light { background-color: #ffffff; color: #1e293b; }
+
+        /* Prevent iOS Safari input zoom on focus (< 16px triggers zoom) */
+        @media screen and (max-width: 768px) {
+            input[type="text"], input[type="search"], select, textarea {
+                font-size: 16px !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-omni-bg text-slate-100 font-sans flex flex-col select-none">
+
+    <!-- NOTIFICATION TOAST (iOS Dynamic Island Style) -->
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[80] pointer-events-none opacity-0 transform -translate-y-4 transition-all duration-300 bg-black/90 backdrop-blur-xl border border-white/15 text-white font-semibold px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2.5 text-xs sm:text-sm max-w-[92vw] truncate" style="margin-top: env(safe-area-inset-top, 0px);">
+        <span id="toast-dot" class="w-2.5 h-2.5 rounded-full accent-bg flex-shrink-0 animate-pulse"></span>
+        <span id="toast-msg" class="truncate">Operazione completata</span>
+    </div>
+
+    <!-- UNIVERSAL DETAILS / INFO / PWA GUIDE MODAL -->
+    <div id="universal-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[70] hidden items-end sm:items-center justify-center p-0 sm:p-6">
+        <div id="universal-modal-box" class="bg-omni-surface border-t sm:border border-omni-border rounded-t-3xl sm:rounded-2xl max-w-3xl w-full max-h-[88dvh] flex flex-col overflow-hidden shadow-2xl pb-safe">
+            <!-- Mobile Pull Handle -->
+            <div class="w-10 h-1.5 bg-white/20 rounded-full mx-auto mt-2.5 sm:hidden"></div>
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between px-5 py-3.5 border-b border-omni-border bg-omni-card/60">
+                <div class="flex items-center gap-2.5 overflow-hidden">
+                    <span id="modal-badge" class="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full accent-bg text-black flex-shrink-0">INFO</span>
+                    <h3 id="modal-title" class="text-base sm:text-lg font-bold truncate">Dettagli</h3>
+                </div>
+                <button onclick="closeModal()" class="w-9 h-9 rounded-full bg-white/10 active:bg-white/20 flex items-center justify-center text-slate-200 transition flex-shrink-0">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <!-- Modal Body -->
+            <div id="modal-body" class="p-5 overflow-y-auto flex-1 space-y-4 select-text"></div>
+        </div>
+    </div>
+
+    <!-- FULL-SCREEN iOS NOW PLAYING SHEET (EXPANDABLE ON IPHONE) -->
+    <div id="ios-full-player" class="fixed inset-0 z-[65] ios-glass hidden flex-col justify-between p-6 pt-safe pb-safe transition-transform duration-300">
+        <!-- Top Grabber & Close Button -->
+        <div class="flex items-center justify-between pt-2">
+            <button onclick="closeFullPlayerSheet()" class="w-10 h-10 rounded-full bg-white/10 active:bg-white/20 flex items-center justify-center text-white">
+                <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            <div class="text-center">
+                <span class="text-[10px] font-extrabold uppercase tracking-widest accent-text block">IN RIPRODUZIONE DA OMNIBEATS</span>
+                <span id="full-player-badge" class="text-xs text-slate-400 font-medium">Streaming Audio HD</span>
+            </div>
+            <button onclick="toggleFavoriteCurrentAudio()" id="full-player-fav-btn" class="w-10 h-10 rounded-full bg-white/10 active:bg-white/20 flex items-center justify-center text-slate-300">
+                <i class="fa-regular fa-heart"></i>
+            </button>
+        </div>
+
+        <!-- Center Big Album Artwork -->
+        <div class="my-auto flex flex-col items-center justify-center py-4">
+            <div class="relative w-64 h-64 sm:w-80 sm:h-80 rounded-3xl overflow-hidden shadow-2xl border border-white/15">
+                <img id="full-player-cover" src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80" alt="Artwork" class="w-full h-full object-cover">
+                <span id="full-player-live" class="hidden absolute top-3 left-3 bg-emerald-500 text-black text-xs font-black px-3 py-1 rounded-full shadow-lg">● LIVE 24/7</span>
+            </div>
+
+            <div class="w-full max-w-sm mt-6 text-center px-2">
+                <h2 id="full-player-title" class="text-xl sm:text-2xl font-black text-white truncate">Groove Salad • Chill Beats</h2>
+                <p id="full-player-artist" class="text-sm text-slate-400 mt-1 truncate">SomaFM Live 24/7</p>
+            </div>
+        </div>
+
+        <!-- Bottom Scrubber, Big Controls & Volume -->
+        <div class="w-full max-w-md mx-auto space-y-6 pb-4">
+            <!-- Progress Bar -->
+            <div class="space-y-2">
+                <div class="relative w-full flex items-center">
+                    <div class="w-full h-2 bg-white/15 rounded-full overflow-hidden">
+                        <div id="full-audio-seek-fill" class="h-full accent-bg" style="width: 0%"></div>
+                    </div>
+                    <input type="range" id="full-audio-seek-slider" min="0" max="100" value="0" step="0.1" class="absolute inset-0 w-full h-full" oninput="seekAudio(this.value)">
+                </div>
+                <div class="flex justify-between text-xs font-mono text-slate-400">
+                    <span id="full-audio-cur-time">0:00</span>
+                    <span id="full-audio-dur-time">0:00</span>
+                </div>
+            </div>
+
+            <!-- Main Transport Controls -->
+            <div class="flex items-center justify-around px-4">
+                <button onclick="prevAudioTrack()" class="text-white active:scale-90 transition text-3xl p-3">
+                    <i class="fa-solid fa-backward-step"></i>
+                </button>
+                <button onclick="toggleAudioPlay()" class="w-20 h-20 rounded-full accent-bg text-black active:scale-95 transition flex items-center justify-center shadow-2xl text-2xl">
+                    <i class="fa-solid fa-play ml-1" id="full-audio-play-icon"></i>
+                </button>
+                <button onclick="nextAudioTrack()" class="text-white active:scale-90 transition text-3xl p-3">
+                    <i class="fa-solid fa-forward-step"></i>
+                </button>
+            </div>
+
+            <!-- Volume Bar -->
+            <div class="flex items-center gap-3 px-2">
+                <i class="fa-solid fa-volume-low text-slate-400 text-xs"></i>
+                <div class="relative flex-1 flex items-center">
+                    <div class="w-full h-1.5 bg-white/15 rounded-full overflow-hidden">
+                        <div id="full-audio-vol-fill" class="h-full bg-white" style="width: 85%"></div>
+                    </div>
+                    <input type="range" min="0" max="1" step="0.01" value="0.85" class="absolute inset-0 w-full h-full" oninput="setAudioVolume(this.value)">
+                </div>
+                <i class="fa-solid fa-volume-high text-slate-400 text-xs"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP LAYOUT -->
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- DESKTOP SIDEBAR (Hidden on iPhone / < md screens) -->
+        <aside class="hidden md:flex w-20 lg:w-64 bg-omni-surface border-r border-omni-border flex-col justify-between p-3 flex-shrink-0 z-20">
+            <div class="space-y-6">
+                <!-- Brand Logo -->
+                <div class="flex items-center gap-3 px-2 py-1.5">
+                    <div class="w-10 h-10 rounded-xl accent-bg text-black flex items-center justify-center font-black text-xl shadow-lg transition-colors duration-300 flex-shrink-0">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </div>
+                    <div class="hidden lg:block overflow-hidden">
+                        <div class="flex items-center gap-1">
+                            <span class="font-black text-lg tracking-tight text-white">Omni</span><span id="brand-suffix" class="font-black text-lg tracking-tight accent-text transition-colors">Beats</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400 font-medium uppercase tracking-wider truncate">iOS & Desktop Media Hub</p>
+                    </div>
+                </div>
+
+                <!-- 4 PILLARS MODE SWITCHER (Desktop) -->
+                <div class="space-y-1.5">
+                    <p class="hidden lg:block px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Modalità Piattaforma</p>
+
+                    <button onclick="switchMode('music')" id="mode-btn-music" class="w-full flex items-center gap-3.5 px-3 py-3 rounded-xl font-bold text-sm transition-all group">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-headphones-simple text-base"></i>
+                        </div>
+                        <div class="hidden lg:block text-left overflow-hidden flex-1">
+                            <p class="text-white text-sm font-bold leading-none">OmniBeats</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5 truncate">Musica & Radio 24/7</p>
+                        </div>
+                    </button>
+
+                    <button onclick="switchMode('flix')" id="mode-btn-flix" class="w-full flex items-center gap-3.5 px-3 py-3 rounded-xl font-bold text-sm transition-all group">
+                        <div class="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-400 flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-clapperboard text-base"></i>
+                        </div>
+                        <div class="hidden lg:block text-left overflow-hidden flex-1">
+                            <p class="text-white text-sm font-bold leading-none">OmniFlix</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5 truncate">Cinema & Serie TV</p>
+                        </div>
+                    </button>
+
+                    <button onclick="switchMode('read')" id="mode-btn-read" class="w-full flex items-center gap-3.5 px-3 py-3 rounded-xl font-bold text-sm transition-all group">
+                        <div class="w-8 h-8 rounded-lg bg-violet-500/15 text-violet-400 flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-book-open-reader text-base"></i>
+                        </div>
+                        <div class="hidden lg:block text-left overflow-hidden flex-1">
+                            <p class="text-white text-sm font-bold leading-none">OmniRead</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5 truncate">Manga & E-Book Free</p>
+                        </div>
+                    </button>
+
+                    <button onclick="switchMode('play')" id="mode-btn-play" class="w-full flex items-center gap-3.5 px-3 py-3 rounded-xl font-bold text-sm transition-all group">
+                        <div class="w-8 h-8 rounded-lg bg-cyan-500/15 text-cyan-400 flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-gamepad text-base"></i>
+                        </div>
+                        <div class="hidden lg:block text-left overflow-hidden flex-1">
+                            <p class="text-white text-sm font-bold leading-none">OmniPlay</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5 truncate">Sala Giochi Touch</p>
+                        </div>
+                    </button>
+                </div>
+
+                <div class="border-t border-omni-border my-2"></div>
+
+                <!-- UNIFIED SAVED LIBRARY -->
+                <div>
+                    <button onclick="switchMode('library')" id="mode-btn-library" class="w-full flex items-center gap-3.5 px-3 py-3 rounded-xl font-bold text-sm transition-all group">
+                        <div class="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-bookmark text-base"></i>
+                        </div>
+                        <div class="hidden lg:block text-left overflow-hidden flex-1">
+                            <p class="text-white text-sm font-bold leading-none">La Mia Libreria</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5 truncate"><span id="sidebar-fav-count">0</span> elementi salvati</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- iPhone WebApp Guide Trigger -->
+            <button onclick="openIosInstallGuide()" class="hidden lg:flex items-center gap-3 bg-omni-card hover:bg-omni-cardHover border border-omni-border rounded-xl p-3 text-left transition">
+                <i class="fa-brands fa-apple text-2xl text-white"></i>
+                <div>
+                    <p class="text-xs font-bold text-white">Usa come App su iPhone</p>
+                    <p class="text-[10px] text-slate-400">Guida "Aggiungi a Home"</p>
+                </div>
+            </button>
+        </aside>
+
+        <!-- MAIN WORKSPACE -->
+        <div class="flex-1 flex flex-col overflow-hidden bg-omni-bg">
+
+            <!-- TOP CONTEXTUAL BAR (Safe-area aware on iPhone) -->
+            <header class="pt-safe border-b border-omni-border ios-glass px-3 sm:px-6 py-2.5 flex flex-col gap-2 flex-shrink-0 z-20">
+                <div class="flex items-center justify-between gap-2">
+                    <!-- Brand / Mode Pill -->
+                    <div class="flex items-center gap-2">
+                        <div class="md:hidden w-8 h-8 rounded-lg accent-bg text-black flex items-center justify-center font-black text-sm shadow">
+                            <i class="fa-solid fa-layer-group"></i>
+                        </div>
+                        <span id="header-mode-pill" class="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full accent-bg text-black">
+                            OmniBeats
+                        </span>
+                        <h1 id="header-subtitle" class="text-xs sm:text-sm font-bold text-slate-300 truncate hidden sm:block">
+                            Streaming Musicale, Radio 24/7 & Player Locale
+                        </h1>
+                    </div>
+
+                    <!-- Desktop Search Bar -->
+                    <div id="header-search-wrapper-desktop" class="hidden md:block flex-1 max-w-md relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input
+                            type="search"
+                            id="universal-search-input-desktop"
+                            placeholder="Cerca canzoni o artisti..."
+                            class="w-full bg-omni-card border border-omni-border focus:border-white/40 text-sm text-white rounded-full pl-9 pr-20 py-1.5 focus:outline-none transition"
+                            onkeydown="if(event.key==='Enter'){ document.getElementById('universal-search-input').value = this.value; triggerContextualSearch(); }"
+                        >
+                        <button
+                            onclick="document.getElementById('universal-search-input').value = document.getElementById('universal-search-input-desktop').value; triggerContextualSearch();"
+                            class="absolute right-1 top-1/2 -translate-y-1/2 accent-bg text-black font-bold text-xs px-3 py-1 rounded-full"
+                        >
+                            Cerca
+                        </button>
+                    </div>
+
+                    <!-- Right Quick Actions (iOS Install Guide + Favorites) -->
+                    <div class="flex items-center gap-2">
+                        <button onclick="openIosInstallGuide()" class="bg-omni-card active:scale-95 border border-omni-border px-2.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 text-slate-200 transition" title="Installa su iPhone">
+                            <i class="fa-brands fa-apple text-sm"></i>
+                            <span class="text-[11px]">App iOS</span>
+                        </button>
+                        <button onclick="switchMode('library')" class="bg-omni-card active:scale-95 border border-omni-border px-2.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-heart text-amber-400"></i>
+                            <span id="header-fav-badge" class="bg-amber-400 text-black px-1.5 rounded-full text-[10px] font-extrabold">0</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mobile Search Bar (16px font to prevent iOS Safari zoom!) -->
+                <div id="header-search-wrapper-mobile" class="md:hidden relative w-full">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input
+                        type="search"
+                        id="universal-search-input"
+                        placeholder="Cerca brani, serie TV, manga..."
+                        class="w-full bg-omni-card border border-omni-border focus:border-white/40 text-white rounded-xl pl-9 pr-20 py-2 focus:outline-none"
+                        onkeydown="if(event.key==='Enter'){ this.blur(); triggerContextualSearch(); }"
+                    >
+                    <button
+                        onclick="document.getElementById('universal-search-input').blur(); triggerContextualSearch();"
+                        class="absolute right-1.5 top-1/2 -translate-y-1/2 accent-bg text-black font-extrabold text-xs px-3.5 py-1.5 rounded-lg active:scale-95 transition"
+                    >
+                        Cerca
+                    </button>
+                </div>
+            </header>
+
+            <!-- SCROLLABLE MODE CONTENT (Extra bottom padding on mobile for Floating Player + iOS Tab Bar) -->
+            <main id="main-workspace" class="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-40 md:pb-8 space-y-6 sm:space-y-8">
+
+                <!-- ==========================================
+                     VIEW 1: OMNIBEATS (MUSIC & RADIO MODE)
+                     ========================================== -->
+                <div id="view-music" class="space-y-6 sm:space-y-8">
+                    <!-- Hero Banner + Local Audio Upload -->
+                    <div class="bg-gradient-to-br from-emerald-950/80 via-omni-card to-omni-card border border-emerald-500/25 rounded-2xl p-4 sm:p-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                        <div class="space-y-2 max-w-xl w-full">
+                            <div class="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                                <i class="fa-solid fa-tower-broadcast animate-pulse"></i> Lock Screen & Dynamic Island Ready
+                            </div>
+                            <h2 class="text-xl sm:text-3xl font-black text-white leading-tight">Musica & Radio 24/7 senza limiti</h2>
+                            <p class="text-xs sm:text-sm text-slate-300">
+                                Cerca qualsiasi artista mondiale, ascolta le radio SomaFM in background su iPhone o carica file audio dalla tua app <strong>File</strong> di iOS.
+                            </p>
+                            <!-- Horizontal Touch Scroll Genre Chips -->
+                            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1.5 pb-1">
+                                <button onclick="searchMusicCatalog('Daft Punk The Weeknd Kavinsky')" class="flex-shrink-0 text-xs bg-white/10 active:bg-emerald-500 active:text-black font-semibold px-3.5 py-1.5 rounded-full transition">⚡ Synth & Electro</button>
+                                <button onclick="searchMusicCatalog('Geolier Lazza Marracash Blanco')" class="flex-shrink-0 text-xs bg-white/10 active:bg-emerald-500 active:text-black font-semibold px-3.5 py-1.5 rounded-full transition">🇮🇹 Top Italia</button>
+                                <button onclick="searchMusicCatalog('Queen Nirvana Linkin Park')" class="flex-shrink-0 text-xs bg-white/10 active:bg-emerald-500 active:text-black font-semibold px-3.5 py-1.5 rounded-full transition">🎸 Rock Legends</button>
+                                <button onclick="searchMusicCatalog('Lofi Chill Study Beats')" class="flex-shrink-0 text-xs bg-white/10 active:bg-emerald-500 active:text-black font-semibold px-3.5 py-1.5 rounded-full transition">☕ Lo-Fi Chill</button>
+                                <button onclick="searchMusicCatalog('Hans Zimmer Interstellar')" class="flex-shrink-0 text-xs bg-white/10 active:bg-emerald-500 active:text-black font-semibold px-3.5 py-1.5 rounded-full transition">🎬 Soundtracks</button>
+                            </div>
+                        </div>
+
+                        <!-- iOS Files App Audio Picker -->
+                        <label for="local-audio-input" class="w-full lg:w-72 border border-dashed border-emerald-500/50 active:bg-emerald-500/20 bg-emerald-500/10 rounded-xl p-3.5 flex items-center gap-3.5 cursor-pointer transition flex-shrink-0">
+                            <div class="w-11 h-11 rounded-xl bg-emerald-500 text-black flex items-center justify-center text-lg font-bold flex-shrink-0 shadow-lg">
+                                <i class="fa-solid fa-folder-plus"></i>
+                            </div>
+                            <div class="overflow-hidden">
+                                <p class="text-xs sm:text-sm font-bold text-white">Carica MP3 / M4A / WAV</p>
+                                <p class="text-[11px] text-slate-300">Dall'app File di iPhone o PC</p>
+                            </div>
+                            <input type="file" id="local-audio-input" accept="audio/*,.mp3,.m4a,.wav,.flac" multiple class="hidden" onchange="handleLocalAudioUpload(this.files)">
+                        </label>
+                    </div>
+
+                    <!-- Section: Radio 24/7 Live Streams -->
+                    <section class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-satellite-dish text-emerald-400"></i> Radio Live 24/7 (SomaFM No-Ads)
+                                </h3>
+                                <p class="text-[11px] sm:text-xs text-slate-400">Funziona anche a schermo bloccato su iOS</p>
+                            </div>
+                        </div>
+                        <div id="music-radio-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3"></div>
+                    </section>
+
+                    <!-- Section: Full-Length Royalty-Free + Local Uploaded Tracks -->
+                    <section class="space-y-3">
+                        <h3 class="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-infinity text-emerald-400"></i> Brani Completi & Tuoi File Audio
+                        </h3>
+                        <div id="music-fulltracks-list" class="bg-omni-surface border border-omni-border rounded-2xl overflow-hidden divide-y divide-omni-border"></div>
+                    </section>
+
+                    <!-- Section: Live Global Catalog Search Results (iTunes API) -->
+                    <section class="space-y-3">
+                        <h3 class="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-globe text-emerald-400"></i> Catalogo Globale <span id="music-query-label" class="text-xs font-normal text-slate-400 truncate"></span>
+                        </h3>
+                        <div id="music-search-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+                    </section>
+                </div>
+
+                <!-- ==========================================
+                     VIEW 2: OMNIFLIX (CINEMA, OPEN MOVIES & TV)
+                     ========================================== -->
+                <div id="view-flix" class="hidden space-y-6 sm:space-y-8">
+                    <!-- iOS-Optimized HTML5 Video Cinema -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 bg-omni-surface border border-rose-500/25 rounded-2xl p-3.5 sm:p-6">
+                        <div class="lg:col-span-2 flex flex-col">
+                            <div class="relative aspect-video bg-black rounded-xl overflow-hidden border border-omni-border shadow-2xl">
+                                <video
+                                    id="flix-video-player"
+                                    controls
+                                    playsinline
+                                    webkit-playsinline
+                                    preload="metadata"
+                                    poster="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Big_buck_bunny_poster_big.jpg/800px-Big_buck_bunny_poster_big.jpg"
+                                    class="w-full h-full object-contain bg-black"
+                                >
+                                    <source id="flix-video-source" src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4" type="video/mp4">
+                                </video>
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3">
+                                <div>
+                                    <span id="flix-now-badge" class="text-[10px] font-extrabold uppercase bg-rose-600 text-white px-2.5 py-0.5 rounded-full">CINEMA HD PLAYSINLINE</span>
+                                    <h3 id="flix-now-title" class="text-base sm:text-lg font-black text-white mt-1">Tears of Steel (Sci-Fi Open Movie HD)</h3>
+                                    <p id="flix-now-desc" class="text-xs text-slate-400">Supporta Picture-in-Picture (PiP) e Schermo Intero nativo iPhone</p>
+                                </div>
+                                <label for="local-video-input" class="bg-rose-600 active:bg-rose-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer transition flex items-center justify-center gap-2 shadow-lg flex-shrink-0">
+                                    <i class="fa-solid fa-film"></i> Apri Video da iPhone (.MP4/.MOV)
+                                    <input type="file" id="local-video-input" accept="video/*,.mp4,.mov,.m4v,.webm" class="hidden" onchange="handleLocalVideoUpload(this.files)">
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Instant Open Movies List -->
+                        <div class="flex flex-col justify-between bg-omni-card border border-omni-border rounded-xl p-3.5">
+                            <div>
+                                <h4 class="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-rose-400 mb-2 flex items-center gap-2">
+                                    <i class="fa-solid fa-play-circle"></i> Film & Corti HD Pronti
+                                </h4>
+                                <div id="flix-open-movies-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
+                            </div>
+                            <div class="mt-3 pt-2.5 border-t border-omni-border text-[11px] text-slate-400 flex items-center justify-between">
+                                <span><i class="fa-brands fa-apple mr-1 text-rose-400"></i> PiP & AirPlay Video Attivi</span>
+                                <span>1080p HD</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TV Shows & Anime Discovery (TVMaze Live API) -->
+                    <section class="space-y-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div>
+                                <h3 class="text-base sm:text-xl font-extrabold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-tv text-rose-500"></i> Esplora Serie TV & Anime
+                                </h3>
+                                <p class="text-xs text-slate-400">Tocca una locandina per trama, voto e salvataggio</p>
+                            </div>
+                            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                                <button onclick="searchTvShows('Cyberpunk')" class="flex-shrink-0 text-xs bg-omni-card active:bg-rose-600 text-white px-3 py-1.5 rounded-full font-semibold">Cyberpunk</button>
+                                <button onclick="searchTvShows('Breaking Bad')" class="flex-shrink-0 text-xs bg-omni-card active:bg-rose-600 text-white px-3 py-1.5 rounded-full font-semibold">Crime</button>
+                                <button onclick="searchTvShows('Black Mirror')" class="flex-shrink-0 text-xs bg-omni-card active:bg-rose-600 text-white px-3 py-1.5 rounded-full font-semibold">Sci-Fi</button>
+                                <button onclick="searchTvShows('Attack on Titan')" class="flex-shrink-0 text-xs bg-omni-card active:bg-rose-600 text-white px-3 py-1.5 rounded-full font-semibold">Anime</button>
+                                <button onclick="searchTvShows('The Bear')" class="flex-shrink-0 text-xs bg-omni-card active:bg-rose-600 text-white px-3 py-1.5 rounded-full font-semibold">Drama</button>
+                            </div>
+                        </div>
+                        <div id="flix-shows-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+                    </section>
+                </div>
+
+                <!-- ==========================================
+                     VIEW 3: OMNIREAD (MANGA & E-BOOK READER)
+                     ========================================== -->
+                <div id="view-read" class="hidden space-y-5">
+                    <!-- Sub-Navigation Tabs -->
+                    <div class="bg-omni-surface border border-violet-500/25 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                        <div class="grid grid-cols-2 sm:flex items-center gap-1.5 bg-omni-bg p-1 rounded-xl border border-omni-border">
+                            <button onclick="switchReadSubTab('manga')" id="read-tab-manga" class="px-3 py-2 rounded-lg text-xs font-extrabold transition bg-violet-600 text-white text-center">
+                                <i class="fa-solid fa-dragon mr-1"></i> Manga DB
+                            </button>
+                            <button onclick="switchReadSubTab('books')" id="read-tab-books" class="px-3 py-2 rounded-lg text-xs font-extrabold transition text-slate-400 text-center">
+                                <i class="fa-solid fa-book-open mr-1"></i> E-Reader Libri
+                            </button>
+                        </div>
+
+                        <label for="local-book-input" class="bg-violet-600/20 active:bg-violet-600 text-violet-300 border border-violet-500/30 font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-file-lines"></i> Apri .TXT / .MD nel Lettore
+                            <input type="file" id="local-book-input" accept=".txt,.md,text/plain" class="hidden" onchange="handleLocalBookUpload(this.files)">
+                        </label>
+                    </div>
+
+                    <!-- SUB-VIEW 3A: MANGA CATALOG -->
+                    <div id="read-manga-section" class="space-y-3">
+                        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                            <button onclick="fetchTopManga()" class="flex-shrink-0 text-xs bg-violet-600 text-white px-3.5 py-1.5 rounded-full font-bold">🏆 Top Manga</button>
+                            <button onclick="fetchMangaCatalog('Berserk')" class="flex-shrink-0 text-xs bg-omni-card active:bg-violet-600 px-3 py-1.5 rounded-full font-semibold">Berserk</button>
+                            <button onclick="fetchMangaCatalog('One Piece')" class="flex-shrink-0 text-xs bg-omni-card active:bg-violet-600 px-3 py-1.5 rounded-full font-semibold">One Piece</button>
+                            <button onclick="fetchMangaCatalog('Solo Leveling')" class="flex-shrink-0 text-xs bg-omni-card active:bg-violet-600 px-3 py-1.5 rounded-full font-semibold">Solo Leveling</button>
+                            <button onclick="fetchMangaCatalog('Jujutsu Kaisen')" class="flex-shrink-0 text-xs bg-omni-card active:bg-violet-600 px-3 py-1.5 rounded-full font-semibold">Jujutsu Kaisen</button>
+                            <button onclick="fetchMangaCatalog('Monster')" class="flex-shrink-0 text-xs bg-omni-card active:bg-violet-600 px-3 py-1.5 rounded-full font-semibold">Monster</button>
+                        </div>
+                        <div id="read-manga-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+                    </div>
+
+                    <!-- SUB-VIEW 3B: E-BOOK READER & PROJECT GUTENBERG -->
+                    <div id="read-books-section" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-5">
+                        <div class="space-y-4">
+                            <div class="bg-omni-surface border border-omni-border rounded-2xl p-4 space-y-2.5">
+                                <h4 class="text-xs font-extrabold text-violet-400 uppercase tracking-wider">📚 Classici Integrati (Tocca e Leggi)</h4>
+                                <div id="builtin-books-list" class="space-y-2"></div>
+                            </div>
+
+                            <div class="bg-omni-surface border border-omni-border rounded-2xl p-4 space-y-2.5">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="text-xs font-extrabold text-white uppercase">Project Gutenberg</h4>
+                                    <span class="text-[10px] bg-violet-500/20 text-violet-300 px-2 py-0.5 rounded-full font-bold">Free E-Books</span>
+                                </div>
+                                <div id="gutenberg-books-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+                            </div>
+                        </div>
+
+                        <!-- Mobile-Friendly E-Reader -->
+                        <div class="lg:col-span-2 flex flex-col bg-omni-surface border border-omni-border rounded-2xl overflow-hidden shadow-2xl">
+                            <div class="px-4 py-3 bg-omni-card border-b border-omni-border flex flex-wrap items-center justify-between gap-2">
+                                <h4 id="ereader-book-title" class="text-xs sm:text-sm font-bold text-white truncate max-w-[180px] sm:max-w-md">Le avventure di Pinocchio</h4>
+                                <div class="flex items-center gap-1.5">
+                                    <button onclick="changeReaderFontSize(-2)" class="w-8 h-8 rounded-lg bg-white/
