@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="OmniHub">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#090a0f">
+    <link rel="apple-touch-icon" href="https://images.unsplash.com/photo-1614680376593-902f749f7ffc?auto=format&fit=crop&w=256&q=80">
+    <title>OmniHub • iOS & Desktop All-in-One Media Center</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        omni: {
+                            bg: '#090a0f',
+                            surface: '#12141d',
+                            card: '#181b26',
+                            border: '#262b3d'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --accent: #10b981;
+            --accent-glow: rgba(16, 185, 129, 0.28);
+        }
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        html, body {
+            height: 100dvh;
+            width: 100%;
+            overflow: hidden;
+            background-color: #090a0f;
+            overscroll-behavior-y: none;
+            -webkit-font-smoothing: antialiased;
+        }
+        .pt-safe { padding-top: max(0.5rem, env(safe-area-inset-top)); }
+        .pb-safe { padding-bottom: max(0.4rem, env(safe-area-inset-bottom)); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #090a0f; }
+        ::-webkit-scrollbar-thumb { background: #262b3d; border-radius: 9999px; }
+
+        .accent-bg { background-color: var(--accent); }
+        .accent-text { color: var(--accent); }
+        .accent-border { border-color: var(--accent); }
+        .ios-glass {
+            background: rgba(18, 20, 29, 0.88);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+        }
+
+        input[type="range"] { -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; }
+        input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            height: 16px; width: 16px; border-radius: 50%;
+            background: #ffffff; margin-top: -5px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+        }
+
+        .reader-dark { background-color: #11131a; color: #e2e8f0; }
+        .reader-sepia { background-color: #f4ecd8; color: #3c2f2f; }
+        .reader-light { background-color: #ffffff; color: #1e293b; }
+
+        @media screen and (max-width: 768px) {
+            input[type="text"], input[type="search"], select, textarea { font-size: 16px !important; }
+        }
+    </style>
+</head>
+<body class="bg-omni-bg text-slate-100 font-sans flex flex-col select-none">
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[90] pointer-events-none opacity-0 -translate-y-3 transition-all duration-300 bg-black/95 border border-white/15 text-white font-semibold px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 text-xs sm:text-sm max-w-[90vw] truncate" style="margin-top: env(safe-area-inset-top, 0px);">
+        <span class="w-2.5 h-2.5 rounded-full accent-bg flex-shrink-0 animate-pulse"></span>
+        <span id="toast-msg" class="truncate">Pronto</span>
+    </div>
+
+    <!-- UNIVERSAL DETAILS MODAL -->
+    <div id="universal-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[80] hidden items-end sm:items-center justify-center p-0 sm:p-6">
+        <div class="bg-omni-surface border-t sm:border border-omni-border rounded-t-3xl sm:rounded-2xl max-w-2xl w-full max-h-[86dvh] flex flex-col overflow-hidden shadow-2xl pb-safe">
+            <div class="w-10 h-1.5 bg-white/20 rounded-full mx-auto mt-2.5 sm:hidden"></div>
+            <div class="flex items-center justify-between px-5 py-3.5 border-b border-omni-border bg-omni-card/60">
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <span id="modal-badge" class="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full accent-bg text-black flex-shrink-0">INFO</span>
+                    <h3 id="modal-title" class="text-base font-bold truncate">Dettagli</h3>
+                </div>
+                <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-white/10 active:bg-white/20 flex items-center justify-center text-slate-200">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="modal-body" class="p-5 overflow-y-auto flex-1 space-y-4 select-text"></div>
+        </div>
+    </div>
+
+    <!-- FULLSCREEN iOS NOW PLAYING SHEET -->
+    <div id="ios-full-player" class="fixed inset-0 z-[75] ios-glass hidden flex-col justify-between p-6 pt-safe pb-safe">
+        <div class="flex items-center justify-between pt-2">
+            <button onclick="closeFullPlayerSheet()" class="w-10 h-10 rounded-full bg-white/10 active:bg-white/20 flex items-center justify-center text-white">
+                <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            <div class="text-center">
+                <span class="text-[10px] font-extrabold uppercase tracking-widest accent-text block">OMNIBEATS AUDIO</span>
+                <span id="full-player-badge" class="text-xs text-slate-400">Streaming HD</span>
+            </div>
+            <button onclick="toggleFavoriteCurrentAudio()" id="full-player-fav-btn" class="w-10 h-10 rounded-full bg-white/10 active:bg-white/20 flex items-center justify-center text-slate-300">
+                <i class="fa-regular fa-heart"></i>
+            </button>
+        </div>
+
+        <div class="my-auto flex flex-col items-center justify-center py-4">
+            <div class="relative w-64 h-64 sm:w-72 sm:h-72 rounded-3xl overflow-hidden shadow-2xl border border-white/15">
+                <img id="full-player-cover" src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80" alt="Artwork" class="w-full h-full object-cover">
+                <span id="full-player-live" class="hidden absolute top-3 left-3 bg-emerald-500 text-black text-xs font-black px-3 py-1 rounded-full">● LIVE 24/7</span>
+            </div>
+            <div class="w-full max-w-sm mt-5 text-center px-2">
+                <h2 id="full-player-title" class="text-xl font-black text-white truncate">Groove Salad</h2>
+                <p id="full-player-artist" class="text-sm text-slate-400 mt-1 truncate">SomaFM Live 24/7</p>
+            </div>
+        </div>
+
+        <div class="w-full max-w-md mx-auto space-y-5 pb-4">
+            <div class="space-y-1.5">
+                <div class="relative w-full flex items-center">
+                    <div class="w-full h-1.5 bg-white/15 rounded-full overflow-hidden">
+                        <div id="full-audio-seek-fill" class="h-full accent-bg" style="width: 0%"></div>
+                    </div>
+                    <input type="range" id="full-audio-seek-slider" min="0" max="100" value="0" step="0.1" class="absolute inset-0 w-full h-full" oninput="seekAudio(this.value)">
+                </div>
+                <div class="flex justify-between text-xs font-mono text-slate-400">
+                    <span id="full-audio-cur-time">0:00</span>
+                    <span id="full-audio-dur-time">0:00</span>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-around px-4">
+                <button onclick="prevAudioTrack()" class="text-white active:scale-90 transition text-2xl p-3"><i class="fa-solid fa-backward-step"></i></button>
+                <button onclick="toggleAudioPlay()" class="w-16 h-16 rounded-full accent-bg text-black active:scale-95 transition flex items-center justify-center shadow-xl text-2xl">
+                    <i class="fa-solid fa-play ml-1" id="full-audio-play-icon"></i>
+                </button>
+                <button onclick="nextAudioTrack()" class="text-white active:scale-90 transition text-2xl p-3"><i class="fa-solid fa-forward-step"></i></button>
+            </div>
+
+            <div class="flex items-center gap-3 px-2">
+                <i class="fa-solid fa-volume-low text-slate-400 text-xs"></i>
+                <input type="range" min="0" max="1" step="0.01" value="0.85" class="flex-1 h-1.5 bg-white/20 rounded-lg" oninput="setAudioVolume(this.value)">
+                <i class="fa-solid fa-volume-high text-slate-400 text-xs"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN LAYOUT CONTAINER -->
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- DESKTOP SIDEBAR -->
+        <aside class="hidden md:flex w-20 lg:w-60 bg-omni-surface border-r border-omni-border flex-col justify-between p-3 flex-shrink-0 z-20">
+            <div class="space-y-5">
+                <div class="flex items-center gap-3 px-2 py-1">
+                    <div class="w-10 h-10 rounded-xl accent-bg text-black flex items-center justify-center font-black text-lg shadow-lg flex-shrink-0">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </div>
+                    <div class="hidden lg:block overflow-hidden">
+                        <span class="font-black text-lg text-white">Omni</span><span id="brand-suffix" class="font-black text-lg accent-text">Beats</span>
+                        <p class="text-[10px] text-slate-400 uppercase tracking-wider truncate">All-In-One Hub</p>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <button onclick="switchMode('music')" id="mode-btn-music" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm transition-all">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-headphones-simple"></i></div>
+                        <div class="hidden lg:block text-left truncate"><p class="text-white text-sm">OmniBeats</p><p class="text-[11px] text-slate-400">Musica & Radio</p></div>
+                    </button>
+
+                    <button onclick="switchMode('flix')" id="mode-btn-flix" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm transition-all">
+                        <div class="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-400 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-clapperboard"></i></div>
+                        <div class="hidden lg:block text-left truncate"><p class="text-white text-sm">OmniFlix</p><p class="text-[11px] text-slate-400">Cinema & Serie TV</p></div>
+                    </button>
+
+                    <button onclick="switchMode('read')" id="mode-btn-read" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm transition-all">
+                        <div class="w-8 h-8 rounded-lg bg-violet-500/15 text-violet-400 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-book-open-reader"></i></div>
+                        <div class="hidden lg:block text-left truncate"><p class="text-white text-sm">OmniRead</p><p class="text-[11px] text-slate-400">Manga & Libri</p></div>
+                    </button>
+
+                    <button onclick="switchMode('play')" id="mode-btn-play" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm transition-all">
+                        <div class="w-8 h-8 rounded-lg bg-cyan-500/15 text-cyan-400 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-gamepad"></i></div>
+                        <div class="hidden lg:block text-left truncate"><p class="text-white text-sm">OmniPlay</p><p class="text-[11px] text-slate-400">Arcade Touch</p></div>
+                    </button>
+
+                    <button onclick="switchMode('library')" id="mode-btn-library" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm transition-all">
+                        <div class="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-bookmark"></i></div>
+                        <div class="hidden lg:block text-left truncate"><p class="text-white text-sm">La Mia Libreria</p><p class="text-[11px] text-slate-400"><span id="sidebar-fav-count">0</span> salvati</p></div>
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="openIosInstallGuide()" class="hidden lg:flex items-center gap-3 bg-omni-card hover:bg-white/5 border border-omni-border rounded-xl p-3 text-left transition">
+                <i class="fa-brands fa-apple text-xl text-white"></i>
+                <div>
+                    <p class="text-xs font-bold text-white">Installa su iPhone</p>
+                    <p class="text-[10px] text-slate-400">Aggiungi a Home iOS</p>
+                </div>
+            </button>
+        </aside>
+
+        <!-- MAIN WORKSPACE -->
+        <div class="flex-1 flex flex-col overflow-hidden bg-omni-bg">
+
+            <!-- TOP HEADER -->
+            <header class="pt-safe border-b border-omni-border ios-glass px-3.5 sm:px-6 py-2.5 flex flex-col gap-2 flex-shrink-0 z-20">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <div class="md:hidden w-7 h-7 rounded-lg accent-bg text-black flex items-center justify-center font-black text-xs">
+                            <i class="fa-solid fa-layer-group"></i>
+                        </div>
+                        <span id="header-mode-pill" class="text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full accent-bg text-black">OmniBeats</span>
+                        <h1 id="header-subtitle" class="text-xs font-bold text-slate-300 truncate hidden sm:block">Musica, Radio 24/7 & Player</h1>
+                    </div>
+
+                    <div class="flex-1 max-w-md relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input
+                            type="search"
+                            id="universal-search-input"
+                            placeholder="Cerca canzoni, serie, manga..."
+                            class="w-full bg-omni-card border border-omni-border focus:border-white/40 text-white rounded-full pl-8 pr-16 py-1.5 text-xs sm:text-sm focus:outline-none"
+                            onkeydown="if(event.key==='Enter'){ this.blur(); triggerContextualSearch(); }"
+                        >
+                        <button onclick="triggerContextualSearch()" class="absolute right-1 top-1/2 -translate-y-1/2 accent-bg text-black font-extrabold text-[11px] px-3 py-1 rounded-full">
+                            Cerca
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="openIosInstallGuide()" class="bg-omni-card border border-omni-border px-2.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 text-slate-200">
+                            <i class="fa-brands fa-apple"></i>
+                            <span class="hidden sm:inline text-[11px]">iOS</span>
+                        </button>
+                        <button onclick="switchMode('library')" class="bg-omni-card border border-omni-border px-2.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1">
+                            <i class="fa-solid fa-heart text-amber-400"></i>
+                            <span id="header-fav-badge" class="bg-amber-400 text-black px-1.5 rounded-full text-[10px] font-extrabold">0</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- CONTENT SCROLL AREA -->
+            <main id="main-workspace" class="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-40 md:pb-24 space-y-6">
+
+                <!-- 1. OMNIBEATS (MUSIC) -->
+                <div id="view-music" class="space-y-6">
+                    <div class="bg-gradient-to-br from-emerald-950/80 via-omni-card to-omni-card border border-emerald-500/25 rounded-2xl p-4 sm:p-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                        <div class="space-y-2 max-w-xl w-full">
+                            <span class="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                                <i class="fa-solid fa-tower-broadcast animate-pulse"></i> Lock Screen & Dynamic Island Attivi
+                            </span>
+                            <h2 class="text-lg sm:text-2xl font-black text-white">Musica & Radio 24/7 No-Ads</h2>
+                            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1">
+                                <button onclick="searchMusicCatalog('Daft Punk The Weeknd')" class="flex-shrink-0 text-xs bg-white/10 active:bg-emerald-500 active:text-black font-semibold px-3 py-1.5 rounded-full">⚡ Synthwave</button>
+                                <button onclick="searchMusicCatalog('Geolier Lazza Marracash')" class="flex-shrink-0 text-xs bg-white/10 active:bg-emerald-500 active:text-black font-semibold px-3 py-1.5 rounded-full">🇮🇹 Top Italia</button>
+                                <button onclick="searchMusicCatalog('Linkin Park Nirvana Queen')" class="flex-shrink-0 text-xs bg-white/10 active:bg-emerald-500 active:text-black font-semibold px-3 py-1.5 rounded-full">🎸 Rock</button>
+                                <button onclick="searchMusicCatalog('Lofi Chill Beats')" class="flex-shrink-0 text-xs bg-white/10 active:bg-emerald-500 active:text-black font-semibold px-3 py-1.5 rounded-full">☕ Lo-Fi</button>
+                            </div>
+                        </div>
+
+                        <label for="local-audio-input" class="w-full lg:w-64 border border-dashed border-emerald-500/50 bg-emerald-500/10 rounded-xl p-3 flex items-center gap-3 cursor-pointer flex-shrink-0">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-500 text-black flex items-center justify-center text-base font-bold flex-shrink-0">
+                                <i class="fa-solid fa-folder-plus"></i>
+                            </div>
+                            <div class="overflow-hidden">
+                                <p class="text-xs font-bold text-white">Carica MP3 / M4A / WAV</p>
+                                <p class="text-[10px] text-slate-300">Dall'app File di iPhone o PC</p>
+                            </div>
+                            <input type="file" id="local-audio-input" accept="audio/*,.mp3,.m4a,.wav,.flac" multiple class="hidden" onchange="handleLocalAudioUpload(this.files)">
+                        </label>
+                    </div>
+
+                    <section class="space-y-2.5">
+                        <h3 class="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-satellite-dish text-emerald-400"></i> Radio Live 24/7 (SomaFM)
+                        </h3>
+                        <div id="music-radio-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5"></div>
+                    </section>
+
+                    <section class="space-y-2.5">
+                        <h3 class="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-infinity text-emerald-400"></i> Brani Completi & Tuoi File
+                        </h3>
+                        <div id="music-fulltracks-list" class="bg-omni-surface border border-omni-border rounded-2xl overflow-hidden divide-y divide-omni-border"></div>
+                    </section>
+
+                    <section class="space-y-2.5">
+                        <h3 class="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-globe text-emerald-400"></i> Catalogo Globale <span id="music-query-label" class="text-xs font-normal text-slate-400"></span>
+                        </h3>
+                        <div id="music-search-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+                    </section>
+                </div>
+
+                <!-- 2. OMNIFLIX (VIDEO & TV) -->
+                <div id="view-flix" class="hidden space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 bg-omni-surface border border-rose-500/25 rounded-2xl p-3.5 sm:p-5">
+                        <div class="lg:col-span-2 flex flex-col">
+                            <div class="relative aspect-video bg-black rounded-xl overflow-hidden border border-omni-border shadow-xl">
+                                <video id="flix-video-player" controls playsinline webkit-playsinline preload="metadata" poster="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Big_buck_bunny_poster_big.jpg/800px-Big_buck_bunny_poster_big.jpg" class="w-full h-full object-contain bg-black">
+                                    <source id="flix-video-source" src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4" type="video/mp4">
+                                </video>
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-3">
+                                <div>
+                                    <span id="flix-now-badge" class="text-[10px] font-extrabold uppercase bg-rose-600 text-white px-2 py-0.5 rounded-full">CINEMA HD</span>
+                                    <h3 id="flix-now-title" class="text-base font-black text-white mt-1">Tears of Steel (Open Movie HD)</h3>
+                                    <p id="flix-now-desc" class="text-xs text-slate-400">Supporta Picture-in-Picture (PiP) nativo iPhone</p>
+                                </div>
+                                <label for="local-video-input" class="bg-rose-600 active:bg-rose-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl cursor-pointer flex items-center justify-center gap-2 flex-shrink-0">
+                                    <i class="fa-solid fa-film"></i> Carica Video (.MP4/.MOV)
+                                    <input type="file" id="local-video-input" accept="video/*,.mp4,.mov,.webm" class="hidden" onchange="handleLocalVideoUpload(this.files)">
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col justify-between bg-omni-card border border-omni-border rounded-xl p-3">
+                            <div>
+                                <h4 class="text-xs font-extrabold uppercase tracking-wider text-rose-400 mb-2">Film & Corti HD Integrati</h4>
+                                <div id="flix-open-movies-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+                            </div>
+                            <div class="mt-2 pt-2 border-t border-omni-border text-[11px] text-slate-400 flex justify-between">
+                                <span><i class="fa-brands fa-apple mr-1 text-rose-400"></i> PiP & AirPlay Ready</span>
+                                <span>1080p</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <section class="space-y-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h3 class="text-base font-extrabold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-tv text-rose-500"></i> Esplora Serie TV & Anime (TVMaze)
+                            </h3>
+                            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                                <button onclick="searchTvShows('Cyberpunk')" class="flex-shrink-0 text-xs bg-omni-card active:bg-rose-600 px-3 py-1 rounded-full font-semibold">Cyberpunk</button>
+                                <button onclick="searchTvShows('Breaking Bad')" class="flex-shrink-0 text-xs bg-omni-card active:bg-rose-600 px-3 py-1 rounded-full font-semibold">Crime</button>
+                                <button onclick="searchTvShows('Black Mirror')" class="flex-shrink-0 text-xs bg-omni-card active:bg-rose-600 px-3 py-1 rounded-full font-semibold">Sci-Fi</button>
+                                <button onclick="searchTvShows('One Piece')" class="flex-shrink-0 text-xs bg-omni-card active:bg-rose-600 px-3 py-1 rounded-full font-semibold">Anime</button>
+                            </div>
+                        </div>
+                        <div id="flix-shows-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+                    </section>
+                </div>
+
+                <!-- 3. OMNIREAD (MANGA & BOOKS) -->
+                <div id="view-read" class="hidden space-y-5">
+                    <div class="bg-omni-surface border border-violet-500/25 rounded-2xl p-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                        <div class="grid grid-cols-2 sm:flex gap-1.5 bg-omni-bg p-1 rounded-xl border border-omni-border">
+                            <button onclick="switchReadSubTab('manga')" id="read-tab-manga" class="px-3 py-1.5 rounded-lg text-xs font-extrabold bg-violet-600 text-white">
+                                <i class="fa-solid fa-dragon mr-1"></i> Manga DB
+                            </button>
+                            <button onclick="switchReadSubTab('books')" id="read-tab-books" class="px-3 py-1.5 rounded-lg text-xs font-extrabold text-slate-400">
+                                <i class="fa-solid fa-book-open mr-1"></i> E-Reader Libri
+                            </button>
+                        </div>
+
+                        <label for="local-book-input" class="bg-violet-600/20 text-violet-300 border border-violet-500/30 font-bold text-xs px-3.5 py-2 rounded-xl cursor-pointer flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-file-lines"></i> Apri file .TXT / .MD
+                            <input type="file" id="local-book-input" accept=".txt,.md,text/plain" class="hidden" onchange="handleLocalBookUpload(this.files)">
+                        </label>
+                    </div>
+
+                    <div id="read-manga-section" class="space-y-3">
+                        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                            <button onclick="fetchTopManga()" class="flex-shrink-0 text-xs bg-violet-600 text-white px-3 py-1.5 rounded-full font-bold">🏆 Top Manga</button>
+                            <button onclick="fetchMangaCatalog('Berserk')" class="flex-shrink-0 text-xs bg-omni-card px-3 py-1.5 rounded-full font-semibold">Berserk</button>
+                            <button onclick="fetchMangaCatalog('One Piece')" class="flex-shrink-0 text-xs bg-omni-card px-3 py-1.5 rounded-full font-semibold">One Piece</button>
+                            <button onclick="fetchMangaCatalog('Solo Leveling')" class="flex-shrink-0 text-xs bg-omni-card px-3 py-1.5 rounded-full font-semibold">Solo Leveling</button>
+                            <button onclick="fetchMangaCatalog('Monster')" class="flex-shrink-0 text-xs bg-omni-card px-3 py-1.5 rounded-full font-semibold">Monster</button>
+                        </div>
+                        <div id="read-manga-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+                    </div>
+
+                    <div id="read-books-section" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div class="space-y-3">
+                            <div class="bg-omni-surface border border-omni-border rounded-2xl p-3.5 space-y-2">
+                                <h4 class="text-xs font-extrabold text-violet-400 uppercase">📚 Classici Pronti da Leggere</h4>
+                                <div id="builtin-books-list" class="space-y-1.5"></div>
+                            </div>
+                            <div class="bg-omni-surface border border-omni-border rounded-2xl p-3.5 space-y-2">
+                                <h4 class="text-xs font-extrabold text-white uppercase">Project Gutenberg (Free)</h4>
+                                <div id="gutenberg-books-list" class="space-y-1.5 max-h-56 overflow-y-auto"></div>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-2 flex flex-col bg-omni-surface border border-omni-border rounded-2xl overflow-hidden shadow-xl">
+                            <div class="px-4 py-2.5 bg-omni-card border-b border-omni-border flex flex-wrap items-center justify-between gap-2">
+                                <h4 id="ereader-book-title" class="text-xs sm:text-sm font-bold text-white truncate max-w-[180px] sm:max-w-md">Le avventure di Pinocchio</h4>
+                                <div class="flex items-center gap-1">
+                                    <button onclick="changeReaderFontSize(-2)" class="w-7 h-7 rounded-lg bg-white/10 text-xs font-bold">A-</button>
+                                    <button onclick="changeReaderFontSize(2)" class="w-7 h-7 rounded-lg bg-white/10 text-xs font-bold">A+</button>
+                                    <button onclick="setReaderTheme('dark')" class="px-2 py-1 rounded bg-slate-900 text-white text-[10px] font-bold border border-white/20">Notte</button>
+                                    <button onclick="setReaderTheme('sepia')" class="px-2 py-1 rounded bg-[#f4ecd8] text-[#3c2f2f] text-[10px] font-bold">Seppia</button>
+                                    <button onclick="setReaderTheme('light')" class="px-2 py-1 rounded bg-white text-slate-900 text-[10px] font-bold">Carta</button>
+                                </div>
+                            </div>
+                            <div id="ereader-content" class="reader-dark p-5 sm:p-8 overflow-y-auto max-h-[55dvh] leading-relaxed font-serif text-base space-y-4 select-text"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. OMNIPLAY (ARCADE TOUCH GAMES) -->
+                <div id="view-play" class="hidden space-y-4">
+                    <div class="grid grid-cols-3 gap-2 sm:gap-3">
+                        <button onclick="selectArcadeGame('snake')" id="game-card-snake" class="bg-omni-surface border-2 border-cyan-500 rounded-xl p-2.5 sm:p-3.5 text-left transition">
+                            <span class="text-[10px] font-mono bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full font-bold">REC: <span id="score-best-snake">0</span></span>
+                            <h4 class="text-xs sm:text-sm font-black text-white mt-1.5 truncate">🐍 Cyber Snake</h4>
+                            <p class="text-[10px] text-slate-400 hidden sm:block">Swipe o D-Pad Touch</p>
+                        </button>
+                        <button onclick="selectArcadeGame('breakout')" id="game-card-breakout" class="bg-omni-surface border-2 border-omni-border rounded-xl p-2.5 sm:p-3.5 text-left transition">
+                            <span class="text-[10px] font-mono bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full font-bold">REC: <span id="score-best-breakout">0</span></span>
+                            <h4 class="text-xs sm:text-sm font-black text-white mt-1.5 truncate">🧱 Neon Breakout</h4>
+                            <p class="text-[10px] text-slate-400 hidden sm:block">Trascina col dito</p>
+                        </button>
+                        <button onclick="selectArcadeGame('space')" id="game-card-space" class="bg-omni-surface border-2 border-omni-border rounded-xl p-2.5 sm:p-3.5 text-left transition">
+                            <span class="text-[10px] font-mono bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full font-bold">REC: <span id="score-best-space">0</span></span>
+                            <h4 class="text-xs sm:text-sm font-black text-white mt-1.5 truncate">🚀 Space Defender</h4>
+                            <p class="text-[10px] text-slate-400 hidden sm:block">Auto-Fire & Touch</p>
+                        </button>
+                    </div>
+
+                    <div class="bg-omni-surface border border-cyan-500/30 rounded-2xl p-3 sm:p-5 flex flex-col items-center">
+                        <div class="w-full max-w-md flex items-center justify-between mb-2.5">
+                            <div>
+                                <h3 id="active-game-title" class="text-sm sm:text-base font-black text-white">🐍 Cyber Snake</h3>
+                                <p id="active-game-controls-hint" class="text-[11px] text-slate-400">Frecce tastiera, Swipe o D-Pad sotto</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="bg-omni-bg border border-omni-border px-2.5 py-1 rounded-lg text-right">
+                                    <span class="text-[9px] text-slate-400 uppercase block">Punti</span>
+                                    <span id="arcade-current-score" class="font-mono font-black text-cyan-400 text-sm">0</span>
+                                </div>
+                                <button onclick="startSelectedArcadeGame()" class="bg-cyan-500 active:bg-cyan-400 text-black font-extrabold text-xs px-3.5 py-2 rounded-xl">
+                                    <i class="fa-solid fa-rotate-right mr-1"></i> Gioca
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="relative w-full max-w-md aspect-[4/3] bg-[#06070b] rounded-xl overflow-hidden border border-omni-border shadow-inner">
+                            <canvas id="arcade-canvas" width="480" height="360" class="w-full h-full block touch-none"></canvas>
+                            <div id="arcade-overlay" class="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center">
+                                <h4 id="arcade-overlay-title" class="text-lg font-black text-white mb-1">Sala Giochi OmniPlay</h4>
+                                <p id="arcade-overlay-sub" class="text-xs text-slate-300 mb-4">Ottimizzato per iPhone Touch e Tastiera</p>
+                                <button onclick="startSelectedArcadeGame()" class="bg-cyan-500 text-black font-black text-xs px-6 py-2.5 rounded-full shadow-lg">
+                                    AVVIA PARTITA
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- iPhone On-Screen Touch Controls -->
+                        <div class="w-full max-w-md mt-3 grid grid-cols-3 gap-2 select-none">
+                            <div class="flex items-center gap-1.5">
+                                <button ontouchstart="arcadeTouchDir('LEFT',true);event.preventDefault()" ontouchend="arcadeTouchDir('LEFT',false)" onmousedown="arcadeTouchDir('LEFT',true)" onmouseup="arcadeTouchDir('LEFT',false)" class="flex-1 h-12 rounded-xl bg-omni-card active:bg-cyan-500 active:text-black border border-omni-border flex items-center justify-center text-base font-bold">
+                                    <i class="fa-solid fa-arrow-left"></i>
+                                </button>
+                                <button ontouchstart="arcadeTouchDir('RIGHT',true);event.preventDefault()" ontouchend="arcadeTouchDir('RIGHT',false)" onmousedown="arcadeTouchDir('RIGHT',true)" onmouseup="arcadeTouchDir('RIGHT',false)" class="flex-1 h-12 rounded-xl bg-omni-card active:bg-cyan-500 active:text-black border border-omni-border flex items-center justify-center text-base font-bold">
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <button ontouchstart="arcadeTouchDir('UP',true);event.preventDefault()" ontouchend="arcadeTouchDir('UP',false)" onmousedown="arcadeTouchDir('UP',true)" onmouseup="arcadeTouchDir('UP',false)" class="flex-1 h-12 rounded-xl bg-omni-card active:bg-cyan-500 active:text-black border border-omni-border flex items-center justify-center text-base font-bold">
+                                    <i class="fa-solid fa-arrow-up"></i>
+                                </button>
+                                <button ontouchstart="arcadeTouchDir('DOWN',true);event.preventDefault()" ontouchend="arcadeTouchDir('DOWN',false)" onmousedown="arcadeTouchDir('DOWN',true)" onmouseup="arcadeTouchDir('DOWN',false)" class="flex-1 h-12 rounded-xl bg-omni-card active:bg-cyan-500 active:text-black border border-omni-border flex items-center justify-center text-base font-bold">
+                                    <i class="fa-solid fa-arrow-down"></i>
+                                </button>
+                            </div>
+                            <button ontouchstart="arcadeTouchFire(true);event.preventDefault()" ontouchend="arcadeTouchFire(false)" onmousedown="arcadeTouchFire(true)" onmouseup="arcadeTouchFire(false)" class="h-12 rounded-xl bg-cyan-500/20 active:bg-cyan-500 active:text-black border border-cyan-500/40 text-cyan-300 font-black text-xs flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-crosshairs"></i> FUOCO
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. UNIFIED LIBRARY -->
+                <div id="view-library" class="hidden space-y-4">
+                    <div class="bg-omni-surface border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-base sm:text-xl font-black text-white">La Mia Libreria Unificata</h2>
+                            <p class="text-xs text-slate-400">I tuoi brani, serie TV, manga e libri salvati sul dispositivo</p>
+                        </div>
+                        <button onclick="clearAllFavorites()" class="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-xl font-bold">
+                            Svuota
+                        </button>
+                    </div>
+                    <div id="library-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- FLOATING MINI-PLAYER (Mobile Floating Pill + Desktop Bottom Bar) -->
+    <div id="mini-player-bar" class="fixed md:static left-2.5 right-2.5 md:left-0 md:right-0 bottom-[68px] md:bottom-0 z-40 ios-glass border border-white/15 md:border-t md:border-omni-border rounded-2xl md:rounded-none px-3 py-2 md:px-6 md:py-2.5 flex items-center justify-between gap-3 shadow-2xl">
+        <div onclick="openFullPlayerSheet()" class="flex items-center gap-3 min-w-0 flex-1 cursor-pointer">
+            <img id="mini-player-cover" src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=200&q=80" alt="Cover" class="w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover border border-white/10 flex-shrink-0">
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5">
+                    <span id="mini-player-live-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-ping hidden"></span>
+                    <p id="mini-player-title" class="text-xs sm:text-sm font-bold text-white truncate">Groove Salad • Chill Beats</p>
+                </div>
+                <p id="mini-player-artist" class="text-[11px] text-slate-400 truncate">SomaFM Live 24/7 • Tocca per espandere</p>
+            </div>
+        </div>
+
+        <!-- Desktop Scrubber -->
+        <div class="hidden md:flex flex-col items-center flex-1 max-w-md gap-1">
+            <div class="flex items-center gap-4">
+                <button onclick="prevAudioTrack()" class="text-slate-300 hover:text-white"><i class="fa-solid fa-backward-step"></i></button>
+                <button onclick="toggleAudioPlay()" class="w-9 h-9 rounded-full accent-bg text-black flex items-center justify-center shadow">
+                    <i class="fa-solid fa-play text-xs ml-0.5" id="desktop-audio-play-icon"></i>
+                </button>
+                <button onclick="nextAudioTrack()" class="text-slate-300 hover:text-white"><i class="fa-solid fa-forward-step"></i></button>
+            </div>
+            <div class="w-full flex items-center gap-2 text-[10px] font-mono text-slate-400">
+                <span id="desktop-audio-cur">0:00</span>
+                <input type="range" id="desktop-audio-slider" min="0" max="100" value="0" step="0.1" class="flex-1 h-1 bg-white/15 rounded-lg" oninput="seekAudio(this.value)">
+                <span id="desktop-audio-dur">LIVE</span>
+            </div>
+        </div>
+
+        <!-- Mobile Quick Transport Controls -->
+        <div class="flex items-center gap-1.5 md:gap-3">
+            <button onclick="toggleFavoriteCurrentAudio()" id="mini-player-fav-btn" class="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-slate-300">
+                <i class="fa-regular fa-heart text-xs"></i>
+            </button>
+            <button onclick="toggleAudioPlay()" class="md:hidden w-10 h-10 rounded-full accent-bg text-black flex items-center justify-center shadow-lg">
+                <i class="fa-solid fa-play text-sm ml-0.5" id="mobile-audio-play-icon"></i>
+            </button>
+            <button onclick="nextAudioTrack()" class="md:hidden w-9 h-9 rounded-full bg-white/10 text-white flex items-center justify-center">
+                <i class="fa-solid fa-forward-step text-xs"></i>
+            </button>
+            <div class="hidden md:flex items-center gap-2 w-28">
+                <i class="fa-solid fa-volume-high text-xs text-slate-400"></i>
+                <input type="range" min="0" max="1" step="0.01" value="0.85" class="w-full h-1 bg-white/20 rounded-lg" oninput="setAudioVolume(this.value)">
+            </div>
+        </div>
+    </div>
+
+    <!-- iOS BOTTOM TAB BAR (Mobile < md only) -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 ios-glass border-t border-white/10 pb-safe px-2 pt-1.5 grid grid-cols-5 gap-1">
+        <button onclick="switchMode('music')" id="mob-tab-music" class="flex flex-col items-center justify-center py-1 rounded-xl text-emerald-400">
+            <i class="fa-solid fa-headphones-simple text-base"></i>
+            <span class="text-[10px] font-bold mt-0.5">Beats</span>
+        </button>
+        <button onclick="switchMode('flix')" id="mob-tab-flix" class="flex flex-col items-center justify-center py-1 rounded-xl text-slate-400">
+            <i class="fa-solid fa-clapperboard text-base"></i>
+            <span class="text-[10px] font-bold mt-0.5">Flix</span>
+        </button>
+        <button onclick="switchMode('read')" id="mob-tab-read" class="flex flex-col items-center justify-center py-1 rounded-xl text-slate-400">
+            <i class="fa-solid fa-book-open-reader text-base"></i>
+            <span class="text-[10px] font-bold mt-0.5">Read</span>
+        </button>
+        <button onclick="switchMode('play')" id="mob-tab-play" class="flex flex-col items-center justify-center py-1 rounded-xl text-slate-400">
+            <i class="fa-solid fa-gamepad text-base"></i>
+            <span class="text-[10px] font-bold mt-0.5">Play</span>
+        </button>
+        <button onclick="switchMode('library')" id="mob-tab-library" class="flex flex-col items-center justify-center py-1 rounded-xl text-slate-400">
+            <i class="fa-solid fa-bookmark text-base"></i>
+            <span class="text-[10px] font-bold mt-0.5">Libreria</span>
+        </button>
+    </nav>
+
+    <audio id="global-audio" preload="none" crossorigin="anonymous"></audio>
+
+    <script>
+        /* =========================================================
+           STATE & DATASETS
+           ========================================================= */
+        let currentMode = 'music';
+        let favorites = JSON.parse(localStorage.getItem('omnihub_favorites_v2') || '[]');
+        const audioEl = document.getElementById('global-audio');
+        let currentQueue = [];
+        let currentTrackIndex = 0;
+        let currentTrackObj = null;
+
+        const RADIO_STATIONS = [
+            { id: 'r1', title: 'Groove Salad', artist: 'SomaFM • Ambient Chill', cover: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=400&q=80', url: 'https://ice1.somafm.com/groovesalad-128-mp3', isLive: true },
+            { id: 'r2', title: 'DEF CON Radio', artist: 'SomaFM • Hacker & Synth', cover: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=400&q=80', url: 'https://ice1.somafm.com/defcon-128-mp3', isLive: true },
+            { id: 'r3', title: 'Drone Zone', artist: 'SomaFM • Deep Space', cover: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=400&q=80', url: 'https://ice1.somafm.com/dronezone-128-mp3', isLive: true },
+            { id: 'r4', title: 'Secret Agent', artist: 'SomaFM • Lounge & Spy', cover: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=400&q=80', url: 'https://ice1.somafm.com/secretagent-128-mp3', isLive: true },
+            { id: 'r5', title: 'Lush Vocals', artist: 'SomaFM • Dreamy Pop', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80', url: 'https://ice1.somafm.com/lush-128-mp3', isLive: true },
+            { id: 'r6', title: 'Metal Detector', artist: 'SomaFM • Heavy Rock', cover: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?auto=format&fit=crop&w=400&q=80', url: 'https://ice1.somafm.com/metal-128-mp3', isLive: true }
+        ];
+
+        const FULL_TRACKS = [
+            { id: 'ft1', title: 'Cybernetic Horizon (Full Mix)', artist: 'SoundHelix Electronic', cover: 'https://images.unsplash.com/photo-1614680376593-902f749f7ffc?auto=format&fit=crop&w=300&q=80', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', isLive: false },
+            { id: 'ft2', title: 'Midnight Drive Synth', artist: 'SoundHelix Project', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=300&q=80', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', isLive: false },
+            { id: 'ft3', title: 'Neon Pulse Overdrive', artist: 'SoundHelix Studio', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=300&q=80', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3', isLive: false }
+        ];
+
+        const OPEN_MOVIES = [
+            { id: 'm1', title: 'Tears of Steel (Sci-Fi HD)', desc: 'Blender Open Movie • Cyberpunk Amsterdam', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4', poster: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=800&q=80' },
+            { id: 'm2', title: 'Sintel (Fantasy Action HD)', desc: 'Blender Open Movie • Avventura Fantasy', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4', poster: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=800&q=80' },
+            { id: 'm3', title: 'Big Buck Bunny (Animation)', desc: 'Commedia animata Open Source HD', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', poster: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Big_buck_bunny_poster_big.jpg/800px-Big_buck_bunny_poster_big.jpg' },
+            { id: 'm4', title: 'Elephants Dream (Surreal Sci-Fi)', desc: 'Primo corto Open Movie Blender', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4', poster: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80' }
+        ];
+
+        const BUILTIN_BOOKS = [
+            {
+                id: 'b1',
+                title: 'Le avventure di Pinocchio (Cap. I)',
+                author: 'Carlo Collodi',
+                text: `C'era una volta...\n— Un re! — diranno subito i miei piccoli lettori.\nNo, ragazzi, avete sbagliato. C'era una volta un pezzo di legno.\nNon era un legno di lusso, ma un semplice pezzo da catasta, di quelli che d'inverno si mettono nelle stufe e nei caminetti per accendere il fuoco e per riscaldare le stanze.\n\nNon so come andasse, ma il fatto gli è che un bel giorno questo pezzo di legno capitò nella bottega di un vecchio falegname, il quale aveva nome mastr'Antonio, se non che tutti lo chiamavano maestro Ciliegia, per via della punta del suo naso, che era sempre lustra e paonazza, come una ciliegia matura.\n\nAppena maestro Ciliegia ebbe visto quel pezzo di legno, si rallegrò tutto e dandosi una fregatina di mani per la contentezza, borbottò a mezza voce:\n— Questo legno è capitato a tempo: voglio servirmene per fare una gamba di tavolino.`
+            },
+            {
+                id: 'b2',
+                title: 'La Metamorfosi (Incipit)',
+                author: 'Franz Kafka',
+                text: `Una mattina Gregorio Samsa, destandosi da sogni inquieti, si trovò mutato, nel suo letto, in un insetto mostruoso.\nEra disteso sul dorso, duro come una corazza, e sollevando un poco il capo vedeva il suo ventre bruno convesso, diviso da nervature arcuate, sul quale la coperta del letto, pronta a scivolar giù tutta, si reggeva a fatica.\nLe gambe, numerose e sottili da far pietà, rispetto alla sua corporatura normale, tremolavano senza tregua in un confuso luccichio dinanzi ai suoi occhi.\n\n«Che cosa mi è accaduto?» pensò. Non era un sogno. La sua camera, una stanzetta normale, se pur un po' piccola, stava tranquilla fra le quattro ben note pareti.`
+            },
+            {
+                id: 'b3',
+                title: 'Sherlock Holmes: Uno studio in rosso',
+                author: 'Arthur Conan Doyle',
+                text: `Nel 1878 presi la laurea in medicina presso l'Università di Londra e mi recai subito dopo a Netley per frequentare il corso speciale per medici militari.\nTerminati gli studi prescritti, fui assegnato in qualità di assistente chirurgo al Quinto Fucilieri del Northumberland.\n\nIl mio incontro con Sherlock Holmes avvenne nel laboratorio chimico dell'ospedale di St. Bartholomew. Appena entrato, egli corse verso di me gridando: «L'ho trovato! L'ho trovato! Ho scoperto un reagente che precipita esclusivamente con l'emoglobina!»`
+            }
+        ];
+
+        /* =========================================================
+           TOAST & MODAL HELPERS
+           ========================================================= */
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            t.classList.remove('opacity-0', '-translate-y-3');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => {
+                t.classList.add('opacity-0', '-translate-y-3');
+            }, 2600);
+        }
+
+        function openModal(badge, title, htmlContent) {
+            document.getElementById('modal-badge').textContent = badge;
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-body').innerHTML = htmlContent;
+            const m = document.getElementById('universal-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        function closeModal() {
+            const m = document.getElementById('universal-modal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        function openIosInstallGuide() {
+            openModal('GUIDA IPHONE', 'Installa OmniHub come App su iOS', `
+                <div class="space-y-3 text-xs sm:text-sm text-slate-300">
+                    <p>Puoi usare <strong>OmniHub</strong> a schermo intero su iPhone (senza barre di Safari e con supporto Dynamic Island / Lock Screen):</p>
+                    <ol class="list-decimal list-inside space-y-2 bg-omni-card p-4 rounded-xl border border-omni-border">
+                        <li>Tocca il pulsante <strong>Condividi</strong> <i class="fa-solid fa-arrow-up-from-bracket text-emerald-400 mx-1"></i> nella barra di Safari.</li>
+                        <li>Scorri in basso e seleziona <strong>"Aggiungi alla schermata Home"</strong> <i class="fa-regular fa-square-plus text-emerald-400 mx-1"></i>.</li>
+                        <li>Tocca <strong>Aggiungi</strong> in alto a destra: avrai l'icona di OmniHub direttamente sulla Home del tuo iPhone!</li>
+                    </ol>
+                </div>
+            `);
+        }
+
+        /* =========================================================
+           MODE SWITCHER
+           ========================================================= */
+        const MODE_CONFIG = {
+            music: { suffix: 'Beats', pill: 'OmniBeats', sub: 'Musica, Radio 24/7 & Player Locale', color: '#10b981', placeholder: 'Cerca canzoni o artisti su iTunes...' },
+            flix:  { suffix: 'Flix',  pill: 'OmniFlix',  sub: 'Cinema Open HD & Serie TV', color: '#e11d48', placeholder: 'Cerca Serie TV o Anime (es. Breaking Bad)...' },
+            read:  { suffix: 'Read',  pill: 'OmniRead',  sub: 'Manga Database & E-Book Reader', color: '#8b5cf6', placeholder: 'Cerca Manga o Libri (es. Berserk)...' },
+            play:  { suffix: 'Play',  pill: 'OmniPlay',  sub: 'Sala Giochi Touch HTML5', color: '#06b6d4', placeholder: 'Cerca nella piattaforma...' },
+            library: { suffix: 'Lib', pill: 'Libreria',  sub: 'I tuoi contenuti preferiti salvati', color: '#f59e0b', placeholder: 'Filtra nei salvati...' }
+        };
+
+        function switchMode(mode) {
+            currentMode = mode;
+            const cfg = MODE_CONFIG[mode];
+            document.documentElement.style.setProperty('--accent', cfg.color);
+            document.getElementById('brand-suffix').textContent = cfg.suffix;
+            document.getElementById('header-mode-pill').textContent = cfg.pill;
+            document.getElementById('header-subtitle').textContent = cfg.sub;
+            document.getElementById('universal-search-input').placeholder = cfg.placeholder;
+
+            ['music', 'flix', 'read', 'play', 'library'].forEach(m => {
+                document.getElementById(`view-${m}`).classList.toggle('hidden', m !== mode);
+                const dBtn = document.getElementById(`mode-btn-${m}`);
+                if (dBtn) dBtn.className = `w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm transition-all ${m === mode ? 'bg-white/10 ring-1 ring-white/20' : 'hover:bg-white/5 opacity-75'}`;
+                const mTab = document.getElementById(`mob-tab-${m}`);
+                if (mTab) mTab.className = `flex flex-col items-center justify-center py-1 rounded-xl transition ${m === mode ? 'accent-text scale-105' : 'text-slate-400'}`;
+            });
+
+            if (mode !== 'play') stopArcadeLoop();
+            if (mode === 'library') renderLibraryView();
+        }
+
+        function triggerContextualSearch() {
+            const q = document.getElementById('universal-search-input').value.trim();
+            if (!q) return;
+            if (currentMode === 'music') searchMusicCatalog(q);
+            else if (currentMode === 'flix') searchTvShows(q);
+            else if (currentMode === 'read') {
+                const isBooks = !document.getElementById('read-books-section').classList.contains('hidden');
+                if (isBooks) searchGutenbergBooks(q);
+                else fetchMangaCatalog(q);
+            } else {
+                switchMode('music');
+                searchMusicCatalog(q);
+            }
+        }
+
+        /* =========================================================
+           1. OMNIBEATS (AUDIO & RADIO ENGINE + iOS MEDIA SESSION)
+           ========================================================= */
+        function renderRadioAndFullTracks() {
+            const rGrid = document.getElementById('music-radio-grid');
+            rGrid.innerHTML = RADIO_STATIONS.map((s, idx) => `
+                <div onclick='playTrackObject(${JSON.stringify(s).replace(/'/g, "&#39;")})' class="bg-omni-surface hover:bg-omni-card border border-omni-border rounded-xl p-2.5 cursor-pointer transition group">
+                    <div class="relative aspect-square rounded-lg overflow-hidden mb-2">
+                        <img src="${s.cover}" alt="${s.title}" class="w-full h-full object-cover group-hover:scale-105 transition">
+                        <span class="absolute top-1.5 left-1.5 bg-emerald-500 text-black text-[9px] font-black px-1.5 py-0.5 rounded">LIVE</span>
+                    </div>
+                    <h4 class="text-xs font-bold text-white truncate">${s.title}</h4>
+                    <p class="text-[10px] text-slate-400 truncate">${s.artist}</p>
+                </div>
+            `).join('');
+
+            renderFullTracksList();
+        }
+
+        function renderFullTracksList() {
+            const list = document.getElementById('music-fulltracks-list');
+            list.innerHTML = FULL_TRACKS.map((t) => `
+                <div onclick='playTrackObject(${JSON.stringify(t).replace(/'/g, "&#39;")})' class="flex items-center justify-between px-3.5 py-2.5 hover:bg-white/5 cursor-pointer transition">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <img src="${t.cover}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0">
+                        <div class="min-w-0">
+                            <p class="text-xs sm:text-sm font-bold text-white truncate">${t.title}</p>
+                            <p class="text-[11px] text-slate-400 truncate">${t.artist}</p>
+                        </div>
+                    </div>
+                    <span class="text-xs text-emerald-400 font-bold flex items-center gap-1.5 flex-shrink-0">
+                        <i class="fa-solid fa-play"></i> Play
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        async function searchMusicCatalog(query) {
+            document.getElementById('music-query-label').textContent = `• "${query}"`;
+            const grid = document.getElementById('music-search-grid');
+            grid.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Ricerca brani in corso...</div>`;
+            try {
+                const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=18`);
+                const data = await res.json();
+                if (!data.results || !data.results.length) {
+                    grid.innerHTML = `<div class="col-span-full py-6 text-center text-xs text-slate-400">Nessun brano trovato.</div>`;
+                    return;
+                }
+                currentQueue = data.results.map(item => ({
+                    id: 'it_' + item.trackId,
+                    title: item.trackName || 'Brano',
+                    artist: item.artistName || 'Artista',
+                    cover: (item.artworkUrl100 || '').replace('100x100bb', '400x400bb'),
+                    url: item.previewUrl,
+                    isLive: false
+                })).filter(x => x.url);
+
+                grid.innerHTML = currentQueue.map((track, i) => `
+                    <div onclick="playQueueIndex(${i})" class="bg-omni-surface hover:bg-omni-card border border-omni-border rounded-xl p-2.5 cursor-pointer transition flex flex-col justify-between group">
+                        <div>
+                            <div class="relative aspect-square rounded-lg overflow-hidden mb-2 bg-black">
+                                <img src="${track.cover}" class="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy">
+                                <div class="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-emerald-500 text-black flex items-center justify-center shadow-lg">
+                                    <i class="fa-solid fa-play text-xs ml-0.5"></i>
+                                </div>
+                            </div>
+                            <h4 class="text-xs font-bold text-white truncate">${track.title}</h4>
+                            <p class="text-[11px] text-slate-400 truncate">${track.artist}</p>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                grid.innerHTML = `<div class="col-span-full py-6 text-center text-xs text-rose-400">Errore connessione API iTunes.</div>`;
+            }
+        }
+
+        function playQueueIndex(idx) {
+            if (!currentQueue[idx]) return;
+            currentTrackIndex = idx;
+            playTrackObject(currentQueue[idx]);
+        }
+
+        function playTrackObject(track) {
+            const vPlayer = document.getElementById('flix-video-player');
+            if (vPlayer && !vPlayer.paused) vPlayer.pause();
+
+            currentTrackObj = track;
+            audioEl.src = track.url;
+            audioEl.play().catch(() => showToast('Tocca Play per avviare l\'audio su iOS'));
+
+            document.getElementById('mini-player-cover').src = track.cover;
+            document.getElementById('mini-player-title').textContent = track.title;
+            document.getElementById('mini-player-artist').textContent = track.artist;
+            document.getElementById('mini-player-live-dot').classList.toggle('hidden', !track.isLive);
+
+            document.getElementById('full-player-cover').src = track.cover;
+            document.getElementById('full-player-title').textContent = track.title;
+            document.getElementById('full-player-artist').textContent = track.artist;
+            document.getElementById('full-player-live').classList.toggle('hidden', !track.isLive);
+
+            updateFavButtonsUI();
+            updateMediaSessionMetadata(track);
+            showToast(`▶ ${track.title}`);
+        }
+
+        function toggleAudioPlay() {
+            if (!audioEl.src) {
+                playTrackObject(RADIO_STATIONS[0]);
+                return;
+            }
+            if (audioEl.paused) audioEl.play();
+            else audioEl.pause();
+        }
+
+        function prevAudioTrack() {
+            if (!currentQueue.length) return;
+            currentTrackIndex = (currentTrackIndex - 1 + currentQueue.length) % currentQueue.length;
+            playTrackObject(currentQueue[currentTrackIndex]);
+        }
+
+        function nextAudioTrack() {
+            if (!currentQueue.length) return;
+            currentTrackIndex = (currentTrackIndex + 1) % currentQueue.length;
+            playTrackObject(currentQueue[currentTrackIndex]);
+        }
+
+        function seekAudio(val) {
+            if (!audioEl.duration || !isFinite(audioEl.duration)) return;
+            audioEl.currentTime = (val / 100) * audioEl.duration;
+        }
+
+        function setAudioVolume(v) {
+            audioEl.volume = parseFloat(v);
+        }
+
+        function formatTime(sec) {
+            if (!sec || !isFinite(sec)) return 'LIVE';
+            const m = Math.floor(sec / 60);
+            const s = Math.floor(sec % 60);
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        audioEl.addEventListener('play', () => {
+            ['mobile-audio-play-icon', 'desktop-audio-play-icon', 'full-audio-play-icon'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.className = 'fa-solid fa-pause';
+            });
+        });
+
+        audioEl.addEventListener('pause', () => {
+            ['mobile-audio-play-icon', 'desktop-audio-play-icon', 'full-audio-play-icon'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.className = 'fa-solid fa-play ml-0.5';
+            });
+        });
+
+        audioEl.addEventListener('timeupdate', () => {
+            const cur = audioEl.currentTime;
+            const dur = audioEl.duration;
+            const pct = (dur && isFinite(dur)) ? (cur / dur) * 100 : 100;
+            document.getElementById('full-audio-seek-fill').style.width = `${pct}%`;
+            document.getElementById('full-audio-seek-slider').value = pct;
+            document.getElementById('desktop-audio-slider').value = pct;
+            document.getElementById('full-audio-cur-time').textContent = formatTime(cur);
+            document.getElementById('full-audio-dur-time').textContent = formatTime(dur);
+            document.getElementById('desktop-audio-cur').textContent = formatTime(cur);
+            document.getElementById('desktop-audio-dur').textContent = formatTime(dur);
+        });
+
+        audioEl.addEventListener('ended', () => nextAudioTrack());
+
+        function handleLocalAudioUpload(files) {
+            if (!files || !files.length) return;
+            Array.from(files).forEach(file => {
+                const url = URL.createObjectURL(file);
+                const newTrack = {
+                    id: 'local_' + Date.now() + Math.random(),
+                    title: file.name.replace(/\.[^/.]+$/, ''),
+                    artist: 'File Locale iPhone/PC',
+                    cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=300&q=80',
+                    url,
+                    isLive: false
+                };
+                FULL_TRACKS.unshift(newTrack);
+            });
+            renderFullTracksList();
+            playTrackObject(FULL_TRACKS[0]);
+        }
+
+        function openFullPlayerSheet() {
+            const sheet = document.getElementById('ios-full-player');
+            sheet.classList.remove('hidden');
+            sheet.classList.add('flex');
+        }
+
+        function closeFullPlayerSheet() {
+            const sheet = document.getElementById('ios-full-player');
+            sheet.classList.add('hidden');
+            sheet.classList.remove('flex');
+        }
+
+        function updateMediaSessionMetadata(track) {
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: track.title,
+                    artist: track.artist,
+                    album: 'OmniHub Media Center',
+                    artwork: [{ src: track.cover, sizes: '512x512', type: 'image/jpeg' }]
+                });
+                navigator.mediaSession.setActionHandler('play', () => audioEl.play());
+                navigator.mediaSession.setActionHandler('pause', () => audioEl.pause());
+                navigator.mediaSession.setActionHandler('previoustrack', () => prevAudioTrack());
+                navigator.mediaSession.setActionHandler('nexttrack', () => nextAudioTrack());
+            }
+        }
+
+        /* =========================================================
+           2. OMNIFLIX (VIDEO & TV SERIES)
+           ========================================================= */
+        function renderOpenMovies() {
+            const list = document.getElementById('flix-open-movies-list');
+            list.innerHTML = OPEN_MOVIES.map((m, i) => `
+                <button onclick="loadOpenMovie(${i})" class="w-full flex items-center gap-2.5 p-2 rounded-xl bg-omni-surface hover:bg-white/10 border border-omni-border text-left transition">
+                    <img src="${m.poster}" class="w-14 h-10 rounded-lg object-cover flex-shrink-0">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-xs font-bold text-white truncate">${m.title}</p>
+                        <p class="text-[10px] text-slate-400 truncate">${m.desc}</p>
+                    </div>
+                    <i class="fa-solid fa-circle-play text-rose-500 text-base"></i>
+                </button>
+            `).join('');
+        }
+
+        function loadOpenMovie(idx) {
+            const m = OPEN_MOVIES[idx];
+            if (!m) return;
+            if (!audioEl.paused) audioEl.pause();
+            const vp = document.getElementById('flix-video-player');
+            document.getElementById('flix-video-source').src = m.url;
+            vp.poster = m.poster;
+            vp.load();
+            vp.play().catch(() => {});
+            document.getElementById('flix-now-title').textContent = m.title;
+            document.getElementById('flix-now-desc').textContent = m.desc;
+            showToast(`🎬 Riproduzione: ${m.title}`);
+        }
+
+        function handleLocalVideoUpload(files) {
+            if (!files || !files[0]) return;
+            if (!audioEl.paused) audioEl.pause();
+            const file = files[0];
+            const url = URL.createObjectURL(file);
+            const vp = document.getElementById('flix-video-player');
+            document.getElementById('flix-video-source').src = url;
+            vp.load();
+            vp.play();
+            document.getElementById('flix-now-title').textContent = file.name;
+            document.getElementById('flix-now-desc').textContent = 'File Video Locale riprodotto in HTML5';
+            showToast('🎬 Video locale caricato');
+        }
+
+        async function searchTvShows(query) {
+            const grid = document.getElementById('flix-shows-grid');
+            grid.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Caricamento serie TV...</div>`;
+            try {
+                const res = await fetch(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                window._lastTvResults = data.map(d => d.show);
+                grid.innerHTML = window._lastTvResults.slice(0, 12).map((show, idx) => {
+                    const img = show.image ? show.image.medium : 'https://placehold.co/300x450/181b26/ffffff?text=TV+Show';
+                    const rating = show.rating && show.rating.average ? show.rating.average : 'N/A';
+                    return `
+                        <div onclick="openTvShowModal(${idx})" class="bg-omni-surface hover:bg-omni-card border border-omni-border rounded-xl overflow-hidden cursor-pointer transition flex flex-col justify-between group">
+                            <div class="relative aspect-[2/3] bg-black overflow-hidden">
+                                <img src="${img}" class="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy">
+                                <span class="absolute top-2 right-2 bg-black/80 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full">★ ${rating}</span>
+                            </div>
+                            <div class="p-2.5">
+                                <h4 class="text-xs font-bold text-white truncate">${show.name}</h4>
+                                <p class="text-[10px] text-slate-400 truncate">${(show.genres || []).join(', ') || 'Serie TV'}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                grid.innerHTML = `<div class="col-span-full py-6 text-center text-xs text-rose-400">Errore caricamento TVMaze API.</div>`;
+            }
+        }
+
+        function openTvShowModal(idx) {
+            const show = window._lastTvResults && window._lastTvResults[idx];
+            if (!show) return;
+            const img = show.image ? show.image.original || show.image.medium : 'https://placehold.co/300x450/181b26/ffffff?text=TV';
+            const cleanSum = (show.summary || 'Nessuna trama disponibile.').replace(/<[^>]*>?/gm, '');
+            const favObj = { id: 'tv_' + show.id, type: 'Serie TV', title: show.name, sub: (show.genres || []).join(', '), cover: img };
+
+            openModal('SERIE TV / ANIME', show.name, `
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <img src="${img}" class="w-36 sm:w-44 rounded-xl object-cover mx-auto sm:mx-0 border border-omni-border">
+                    <div class="space-y-2.5 flex-1">
+                        <div class="flex flex-wrap gap-1.5">
+                            <span class="text-xs bg-rose-600 text-white font-bold px-2.5 py-0.5 rounded-full">★ ${show.rating?.average || 'N/A'}</span>
+                            <span class="text-xs bg-omni-card border border-omni-border px-2.5 py-0.5 rounded-full">${show.premiered || 'N/A'}</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">${cleanSum}</p>
+                        <button onclick='saveItemToFavorites(${JSON.stringify(favObj).replace(/'/g, "&#39;")})' class="bg-rose-600 text-white font-bold text-xs px-4 py-2 rounded-xl inline-flex items-center gap-1.5">
+                            <i class="fa-solid fa-heart"></i> Salva nella Libreria
+                        </button>
+                    </div>
+                </div>
+            `);
+        }
+
+        /* =========================================================
+           3. OMNIREAD (MANGA JIKAN API & E-BOOK READER)
+           ========================================================= */
+        function switchReadSubTab(tab) {
+            const isManga = tab === 'manga';
+            document.getElementById('read-manga-section').classList.toggle('hidden', !isManga);
+            document.getElementById('read-books-section').classList.toggle('hidden', isManga);
+            document.getElementById('read-tab-manga').className = `px-3 py-1.5 rounded-lg text-xs font-extrabold transition ${isManga ? 'bg-violet-600 text-white' : 'text-slate-400'}`;
+            document.getElementById('read-tab-books').className = `px-3 py-1.5 rounded-lg text-xs font-extrabold transition ${!isManga ? 'bg-violet-600 text-white' : 'text-slate-400'}`;
+        }
+
+        async function fetchTopManga() {
+            const grid = document.getElementById('read-manga-grid');
+            grid.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Caricamento Top Manga...</div>`;
+            try {
+                const res = await fetch('https://api.jikan.moe/v4/top/manga?limit=12');
+                const data = await res.json();
+                renderMangaList(data.data || []);
+            } catch (e) {
+                grid.innerHTML = `<div class="col-span-full py-6 text-center text-xs text-rose-400">Errore Jikan API.</div>`;
+            }
+        }
+
+        async function fetchMangaCatalog(query) {
+            const grid = document.getElementById('read-manga-grid');
+            grid.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Ricerca Manga "${query}"...</div>`;
+            try {
+                const res = await fetch(`https://api.jikan.moe/v4/manga?q=${encodeURIComponent(query)}&limit=12`);
+                const data = await res.json();
+                renderMangaList(data.data || []);
+            } catch (e) {
+                grid.innerHTML = `<div class="col-span-full py-6 text-center text-xs text-rose-400">Errore ricerca Manga.</div>`;
+            }
+        }
+
+        function renderMangaList(list) {
+            window._lastMangaList = list;
+            const grid = document.getElementById('read-manga-grid');
+            if (!list.length) {
+                grid.innerHTML = `<div class="col-span-full py-6 text-center text-xs text-slate-400">Nessun manga trovato.</div>`;
+                return;
+            }
+            grid.innerHTML = list.map((m, idx) => {
+                const img = m.images?.jpg?.image_url || 'https://placehold.co/300x450/181b26/ffffff?text=Manga';
+                return `
+                    <div onclick="openMangaModal(${idx})" class="bg-omni-surface hover:bg-omni-card border border-omni-border rounded-xl overflow-hidden cursor-pointer transition flex flex-col justify-between group">
+                        <div class="relative aspect-[2/3] bg-black overflow-hidden">
+                            <img src="${img}" class="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy">
+                            <span class="absolute top-2 right-2 bg-violet-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">★ ${m.score || 'N/A'}</span>
+                        </div>
+                        <div class="p-2.5">
+                            <h4 class="text-xs font-bold text-white truncate">${m.title}</h4>
+                            <p class="text-[10px] text-slate-400 truncate">${m.type || 'Manga'} • Cap: ${m.chapters || '?'}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openMangaModal(idx) {
+            const m = window._lastMangaList && window._lastMangaList[idx];
+            if (!m) return;
+            const img = m.images?.jpg?.large_image_url || m.images?.jpg?.image_url;
+            const favObj = { id: 'mg_' + m.mal_id, type: 'Manga', title: m.title, sub: `Score: ${m.score || 'N/A'}`, cover: img };
+            openModal('MANGA INFO', m.title, `
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <img src="${img}" class="w-36 sm:w-44 rounded-xl object-cover mx-auto sm:mx-0 border border-omni-border">
+                    <div class="space-y-2.5 flex-1">
+                        <div class="flex flex-wrap gap-1.5">
+                            <span class="text-xs bg-violet-600 text-white font-bold px-2.5 py-0.5 rounded-full">★ ${m.score || 'N/A'}</span>
+                            <span class="text-xs bg-omni-card border border-omni-border px-2.5 py-0.5 rounded-full">Capitoli: ${m.chapters || 'In corso'}</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-slate-300 leading-relaxed max-h-48 overflow-y-auto">${m.synopsis || 'Nessuna sinossi disponibile.'}</p>
+                        <button onclick='saveItemToFavorites(${JSON.stringify(favObj).replace(/'/g, "&#39;")})' class="bg-violet-600 text-white font-bold text-xs px-4 py-2 rounded-xl inline-flex items-center gap-1.5">
+                            <i class="fa-solid fa-heart"></i> Salva nella Libreria
+                        </button>
+                    </div>
+                </div>
+            `);
+        }
+
+        let readerFontSize = 16;
+        function renderBuiltinBooks() {
+            const cont = document.getElementById('builtin-books-list');
+            cont.innerHTML = BUILTIN_BOOKS.map((b, i) => `
+                <button onclick="openBuiltinBook(${i})" class="w-full text-left p-2.5 rounded-xl bg-omni-card hover:bg-violet-600/20 border border-omni-border transition flex items-center justify-between">
+                    <div class="min-w-0">
+                        <p class="text-xs font-bold text-white truncate">${b.title}</p>
+                        <p class="text-[10px] text-slate-400">${b.author}</p>
+                    </div>
+                    <i class="fa-solid fa-book-open text-violet-400 text-xs"></i>
+                </button>
+            `).join('');
+            openBuiltinBook(0);
+            searchGutenbergBooks('Dante');
+        }
+
+        function openBuiltinBook(idx) {
+            const b = BUILTIN_BOOKS[idx];
+            if (!b) return;
+            document.getElementById('ereader-book-title').textContent = `${b.title} — ${b.author}`;
+            document.getElementById('ereader-content').innerHTML = b.text.split('\n\n').map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+        }
+
+        async function searchGutenbergBooks(query) {
+            const list = document.getElementById('gutenberg-books-list');
+            list.innerHTML = `<div class="text-xs text-slate-400 py-3 text-center"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Ricerca Gutenberg...</div>`;
+            try {
+                const res = await fetch(`https://gutendex.com/books/?search=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                const results = (data.results || []).slice(0, 8);
+                list.innerHTML = results.map(b => {
+                    const author = b.authors?.[0]?.name || 'Classico';
+                    return `
+                        <div class="p-2 rounded-xl bg-omni-card border border-omni-border flex items-center justify-between gap-2">
+                            <div class="min-w-0">
+                                <p class="text-xs font-bold text-white truncate">${b.title}</p>
+                                <p class="text-[10px] text-slate-400 truncate">${author}</p>
+                            </div>
+                            <button onclick="loadGutenbergPreview('${b.title.replace(/'/g, "\\'")}', '${author.replace(/'/g, "\\'")}', ${b.id})" class="text-[10px] bg-violet-600 text-white font-bold px-2.5 py-1 rounded-lg flex-shrink-0">Apri</button>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                list.innerHTML = `<div class="text-xs text-slate-400 py-2">Catalogo offline. Usa i classici integrati.</div>`;
+            }
+        }
+
+        function loadGutenbergPreview(title, author, id) {
+            document.getElementById('ereader-book-title').textContent = `${title} (${author})`;
+            document.getElementById('ereader-content').innerHTML = `
+                <p class="font-bold text-violet-400">Edizione Pubblico Dominio Project Gutenberg #${id}</p>
+                <p>Titolo: <strong>${title}</strong><br>Autore: <strong>${author}</strong></p>
+                <p>Puoi leggere i classici precaricati qui a sinistra, caricare qualsiasi tuo file <code>.txt</code> o <code>.md</code> dal tuo iPhone/PC con il pulsante in alto, oppure scaricare l'intero testo originale gratuito direttamente dall'archivio ufficiale:</p>
+                <p><a href="https://www.gutenberg.org/ebooks/${id}" target="_blank" rel="noopener" class="inline-block bg-violet-600 text-white font-sans font-bold text-xs px-4 py-2 rounded-xl mt-2">Apri Scheda Completa su Gutenberg.org ↗</a></p>
+            `;
+            showToast(`📖 Aperto: ${title}`);
+        }
+
+        function handleLocalBookUpload(files) {
+            if (!files || !files[0]) return;
+            const file = files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                switchReadSubTab('books');
+                document.getElementById('ereader-book-title').textContent = file.name;
+                const paragraphs = (e.target.result || '').split(/\n\s*\n/);
+                document.getElementById('ereader-content').innerHTML = paragraphs.map(p => `<p>${p.replace(/</g, '&lt;').replace(/\n/g, '<br>')}</p>`).join('');
+                showToast(`📖 Libro caricato: ${file.name}`);
+            };
+            reader.readAsText(file);
+        }
+
+        function changeReaderFontSize(delta) {
+            readerFontSize = Math.max(13, Math.min(26, readerFontSize + delta));
+            document.getElementById('ereader-content').style.fontSize = `${readerFontSize}px`;
+        }
+
+        function setReaderTheme(theme) {
+            const el = document.getElementById('ereader-content');
+            el.classList.remove('reader-dark', 'reader-sepia', 'reader-light');
+            el.classList.add(`reader-${theme}`);
+        }
+
+        /* =========================================================
+           4. OMNIPLAY (3 HTML5 TOUCH & KEYBOARD ARCADE GAMES)
+           ========================================================= */
+        const canvas = document.getElementById('arcade-canvas');
+        const ctx = canvas.getContext('2d');
+        let activeGame = 'snake';
+        let arcadeAnimId = null;
+        let arcadeIntervalId = null;
+        let currentScore = 0;
+        let touchState = { LEFT: false, RIGHT: false, UP: false, DOWN: false, FIRE: false };
+        let snakeState = null;
+        let breakoutState = null;
+        let spaceState = null;
+
+        function loadHighScores() {
+            ['snake', 'breakout', 'space'].forEach(g => {
+                document.getElementById(`score-best-${g}`).textContent = localStorage.getItem(`omni_best_${g}`) || '0';
+            });
+        }
+
+        function saveHighScore(game, score) {
+            const prev = parseInt(localStorage.getItem(`omni_best_${game}`) || '0', 10);
+            if (score > prev) {
+                localStorage.setItem(`omni_best_${game}`, score);
+                loadHighScores();
+            }
+        }
+
+        function stopArcadeLoop() {
+            if (arcadeAnimId) cancelAnimationFrame(arcadeAnimId);
+            if (arcadeIntervalId) clearInterval(arcadeIntervalId);
+            arcadeAnimId = null;
+            arcadeIntervalId = null;
+        }
+
+        function selectArcadeGame(game) {
+            activeGame = game;
+            stopArcadeLoop();
+            ['snake', 'breakout', 'space'].forEach(g => {
+                document.getElementById(`game-card-${g}`).className = `bg-omni-surface border-2 ${g === game ? 'border-cyan-500' : 'border-omni-border'} rounded-xl p-2.5 sm:p-3.5 text-left transition`;
+            });
+            const titles = { snake: '🐍 Cyber Snake', breakout: '🧱 Neon Breakout', space: '🚀 Space Defender' };
+            document.getElementById('active-game-title').textContent = titles[game];
+            document.getElementById('arcade-overlay').classList.remove('hidden');
+            document.getElementById('arcade-overlay-title').textContent = titles[game];
+            document.getElementById('arcade-overlay-sub').textContent = 'Tocca AVVIA PARTITA per giocare';
+        }
+
+        function startSelectedArcadeGame() {
+            stopArcadeLoop();
+            currentScore = 0;
+            document.getElementById('arcade-current-score').textContent = '0';
+            document.getElementById('arcade-overlay').classList.add('hidden');
+            if (activeGame === 'snake') initSnakeGame();
+            else if (activeGame === 'breakout') initBreakoutGame();
+            else if (activeGame === 'space') initSpaceGame();
+        }
+
+        function gameOverArcade(msg) {
+            stopArcadeLoop();
+            saveHighScore(activeGame, currentScore);
+            document.getElementById('arcade-overlay').classList.remove('hidden');
+            document.getElementById('arcade-overlay-title').textContent = msg || 'Partita Terminata!';
+            document.getElementById('arcade-overlay-sub').textContent = `Punteggio: ${currentScore}`;
+        }
+
+        // --- GAME 1: CYBER SNAKE ---
+        function initSnakeGame() {
+            snakeState = {
+                grid: 20,
+                snake: [{ x: 10, y: 9 }, { x: 9, y: 9 }, { x: 8, y: 9 }],
+                dir: { x: 1, y: 0 },
+                nextDir: { x: 1, y: 0 },
+                food: { x: 15, y: 9 }
+            };
+            arcadeIntervalId = setInterval(stepSnake, 110);
+        }
+
+        function stepSnake() {
+            const s = snakeState;
+            s.dir = s.nextDir;
+            const head = { x: s.snake[0].x + s.dir.x, y: s.snake[0].y + s.dir.y };
+            const cols = canvas.width / s.grid;
+            const rows = canvas.height / s.grid;
+
+            if (head.x < 0 || head.x >= cols || head.y < 0 || head.y >= rows || s.snake.some(seg => seg.x === head.x && seg.y === head.y)) {
+                return gameOverArcade('🐍 Game Over!');
+            }
+
+            s.snake.unshift(head);
+            if (head.x === s.food.x && head.y === s.food.y) {
+                currentScore += 10;
+                document.getElementById('arcade-current-score').textContent = currentScore;
+                s.food = { x: Math.floor(Math.random() * cols), y: Math.floor(Math.random() * rows) };
+            } else {
+                s.snake.pop();
+            }
+
+            ctx.fillStyle = '#06070b';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#f43f5e';
+            ctx.beginPath();
+            ctx.arc(s.food.x * s.grid + 10, s.food.y * s.grid + 10, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            s.snake.forEach((seg, i) => {
+                ctx.fillStyle = i === 0 ? '#06b6d4' : '#10b981';
+                ctx.fillRect(seg.x * s.grid + 1, seg.y * s.grid + 1, s.grid - 2, s.grid - 2);
+            });
+        }
+
+        // --- GAME 2: NEON BREAKOUT ---
+        function initBreakoutGame() {
+            const bricks = [];
+            for (let r = 0; r < 4; r++) {
+                for (let c = 0; c < 7; c++) {
+                    bricks.push({ x: 22 + c * 63, y: 35 + r * 24, w: 55, h: 16, alive: true, color: ['#06b6d4', '#8b5cf6', '#10b981', '#f59e0b'][r] });
+                }
+            }
+            breakoutState = { paddleX: 190, paddleW: 96, ball: { x: 240, y: 260, vx: 3.5, vy: -3.5, r: 7 }, bricks };
+            loopBreakout();
+        }
+
+        function loopBreakout() {
+            const b = breakoutState;
+            if (touchState.LEFT) b.paddleX = Math.max(0, b.paddleX - 6);
+            if (touchState.RIGHT) b.paddleX = Math.min(canvas.width - b.paddleW, b.paddleX + 6);
+
+            b.ball.x += b.ball.vx;
+            b.ball.y += b.ball.vy;
+
+            if (b.ball.x < b.ball.r || b.ball.x > canvas.width - b.ball.r) b.ball.vx *= -1;
+            if (b.ball.y < b.ball.r) b.ball.vy *= -1;
+
+            if (b.ball.y + b.ball.r >= 330 && b.ball.x >= b.paddleX && b.ball.x <= b.paddleX + b.paddleW && b.ball.vy > 0) {
+                const hit = (b.ball.x - (b.paddleX + b.paddleW / 2)) / (b.paddleW / 2);
+                b.ball.vx = hit * 4.5;
+                b.ball.vy = -Math.abs(b.ball.vy);
+            }
+
+            if (b.ball.y > canvas.height) return gameOverArcade('🧱 Pallina Persa!');
+
+            b.bricks.forEach(br => {
+                if (br.alive && b.ball.x > br.x && b.ball.x < br.x + br.w && b.ball.y > br.y && b.ball.y < br.y + br.h) {
+                    br.alive = false;
+                    b.ball.vy *= -1;
+                    currentScore += 15;
+                    document.getElementById('arcade-current-score').textContent = currentScore;
+                }
+            });
+
+            if (b.bricks.every(br => !br.alive)) return gameOverArcade('🏆 Vittoria Breakout!');
+
+            ctx.fillStyle = '#06070b';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            b.bricks.forEach(br => {
+                if (!br.alive) return;
+                ctx.fillStyle = br.color;
+                ctx.fillRect(br.x, br.y, br.w, br.h);
+            });
+
+            ctx.fillStyle = '#06b6d4';
+            ctx.fillRect(b.paddleX, 330, b.paddleW, 12);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(b.ball.x, b.ball.y, b.ball.r, 0, Math.PI * 2);
+            ctx.fill();
+
+            arcadeAnimId = requestAnimationFrame(loopBreakout);
+        }
+
+        // --- GAME 3: SPACE DEFENDER ---
+        function initSpaceGame() {
+            spaceState = { shipX: 220, bullets: [], enemies: [], tick: 0 };
+            loopSpace();
+        }
+
+        function loopSpace() {
+            const sp = spaceState;
+            sp.tick++;
+            if (touchState.LEFT) sp.shipX = Math.max(20, sp.shipX - 5);
+            if (touchState.RIGHT) sp.shipX = Math.min(canvas.width - 20, sp.shipX + 5);
+            if ((touchState.FIRE || sp.tick % 18 === 0) && sp.bullets.length < 8) {
+                if (touchState.FIRE && sp.tick % 8 === 0) sp.bullets.push({ x: sp.shipX, y: 315 });
+            }
+
+            if (sp.tick % 45 === 0) {
+                sp.enemies.push({ x: 30 + Math.random() * (canvas.width - 60), y: -15, r: 13, speed: 1.4 + Math.random() * 1.2 });
+            }
+
+            sp.bullets.forEach(bl => bl.y -= 7);
+            sp.bullets = sp.bullets.filter(bl => bl.y > 0);
+
+            sp.enemies.forEach(en => en.y += en.speed);
+
+            for (let i = sp.enemies.length - 1; i >= 0; i--) {
+                const en = sp.enemies[i];
+                if (en.y > 335) return gameOverArcade('🚀 Base Invaders!');
+                for (let j = sp.bullets.length - 1; j >= 0; j--) {
+                    const bl = sp.bullets[j];
+                    if (Math.hypot(en.x - bl.x, en.y - bl.y) < en.r + 5) {
+                        sp.enemies.splice(i, 1);
+                        sp.bullets.splice(j, 1);
+                        currentScore += 20;
+                        document.getElementById('arcade-current-score').textContent = currentScore;
+                        break;
+                    }
+                }
+            }
+
+            ctx.fillStyle = '#06070b';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Player Ship
+            ctx.fillStyle = '#06b6d4';
+            ctx.beginPath();
+            ctx.moveTo(sp.shipX, 310);
+            ctx.lineTo(sp.shipX - 16, 342);
+            ctx.lineTo(sp.shipX + 16, 342);
+            ctx.closePath();
+            ctx.fill();
+
+            // Bullets
+            ctx.fillStyle = '#facc15';
+            sp.bullets.forEach(bl => ctx.fillRect(bl.x - 2, bl.y, 4, 10));
+
+            // Enemies
+            ctx.fillStyle = '#e11d48';
+            sp.enemies.forEach(en => {
+                ctx.beginPath();
+                ctx.arc(en.x, en.y, en.r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            arcadeAnimId = requestAnimationFrame(loopSpace);
+        }
+
+        function arcadeTouchDir(dir, isDown) {
+            touchState[dir] = isDown;
+            if (isDown && activeGame === 'snake' && snakeState) {
+                const d = snakeState.dir;
+                if (dir === 'LEFT' && d.x === 0) snakeState.nextDir = { x: -1, y: 0 };
+                if (dir === 'RIGHT' && d.x === 0) snakeState.nextDir = { x: 1, y: 0 };
+                if (dir === 'UP' && d.y === 0) snakeState.nextDir = { x: 0, y: -1 };
+                if (dir === 'DOWN' && d.y === 0) snakeState.nextDir = { x: 0, y: 1 };
+            }
+        }
+
+        function arcadeTouchFire(isDown) {
+            touchState.FIRE = isDown;
+            if (isDown && activeGame === 'space' && spaceState) {
+                spaceState.bullets.push({ x: spaceState.shipX, y: 315 });
+            }
+        }
+
+        // Canvas Direct Touch Swipe / Drag for iPhone
+        let touchStartX = 0, touchStartY = 0;
+        canvas.addEventListener('touchstart', e => {
+            const t = e.touches[0];
+            touchStartX = t.clientX;
+            touchStartY = t.clientY;
+        }, { passive: true });
+
+        canvas.addEventListener('touchmove', e => {
+            const t = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const relX = ((t.clientX - rect.left) / rect.width) * canvas.width;
+            if (activeGame === 'breakout' && breakoutState) {
+                breakoutState.paddleX = Math.max(0, Math.min(canvas.width - breakoutState.paddleW, relX - breakoutState.paddleW / 2));
+            } else if (activeGame === 'space' && spaceState) {
+                spaceState.shipX = Math.max(20, Math.min(canvas.width - 20, relX));
+            }
+        }, { passive: true });
+
+        canvas.addEventListener('touchend', e => {
+            if (activeGame !== 'snake' || !snakeState) return;
+            const t = e.changedTouches[0];
+            const dx = t.clientX - touchStartX;
+            const dy = t.clientY - touchStartY;
+            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 15) {
+                arcadeTouchDir(dx > 0 ? 'RIGHT' : 'LEFT', true);
+            } else if (Math.abs(dy) > 15) {
+                arcadeTouchDir(dy > 0 ? 'DOWN' : 'UP', true);
+            }
+        }, { passive: true });
+
+        window.addEventListener('keydown', e => {
+            if (currentMode !== 'play') return;
+            if (e.key === 'ArrowLeft') arcadeTouchDir('LEFT', true);
+            if (e.key === 'ArrowRight') arcadeTouchDir('RIGHT', true);
+            if (e.key === 'ArrowUp') arcadeTouchDir('UP', true);
+            if (e.key === 'ArrowDown') arcadeTouchDir('DOWN', true);
+            if (e.key === ' ') arcadeTouchFire(true);
+        });
+        window.addEventListener('keyup', e => {
+            if (e.key === 'ArrowLeft') arcadeTouchDir('LEFT', false);
+            if (e.key === 'ArrowRight') arcadeTouchDir('RIGHT', false);
+            if (e.key === 'ArrowUp') arcadeTouchDir('UP', false);
+            if (e.key === 'ArrowDown') arcadeTouchDir('DOWN', false);
+            if (e.key === ' ') arcadeTouchFire(false);
+        });
+
+        /* =========================================================
+           5. FAVORITES / UNIFIED LIBRARY
+           ========================================================= */
+        function updateFavBadges() {
+            document.getElementById('header-fav-badge').textContent = favorites.length;
+            document.getElementById('sidebar-fav-count').textContent = favorites.length;
+        }
+
+        function saveItemToFavorites(item) {
+            const idx = favorites.findIndex(f => f.id === item.id);
+            if (idx >= 0) {
+                favorites.splice(idx, 1);
+                showToast('Rimosso dalla Libreria');
+            } else {
+                favorites.unshift(item);
+                showToast('❤️ Salvato nella Libreria!');
+            }
+            localStorage.setItem('omnihub_favorites_v2', JSON.stringify(favorites));
+            updateFavBadges();
+            updateFavButtonsUI();
+            if (currentMode === 'library') renderLibraryView();
+        }
+
+        function toggleFavoriteCurrentAudio() {
+            if (!currentTrackObj) return;
+            saveItemToFavorites({
+                id: currentTrackObj.id,
+                type: 'Musica',
+                title: currentTrackObj.title,
+                sub: currentTrackObj.artist,
+                cover: currentTrackObj.cover,
+                trackData: currentTrackObj
+            });
+        }
+
+        function updateFavButtonsUI() {
+            const isFav = currentTrackObj && favorites.some(f => f.id === currentTrackObj.id);
+            ['mini-player-fav-btn', 'full-player-fav-btn'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.innerHTML = isFav ? '<i class="fa-solid fa-heart text-rose-500"></i>' : '<i class="fa-regular fa-heart"></i>';
+            });
+        }
+
+        function renderLibraryView() {
+            const grid = document.getElementById('library-grid');
+            if (!favorites.length) {
+                grid.innerHTML = `<div class="col-span-full py-12 text-center text-xs text-slate-400">Nessun elemento salvato. Tocca il cuore su brani, serie TV o manga!</div>`;
+                return;
+            }
+            grid.innerHTML = favorites.map((item, i) => `
+                <div class="bg-omni-surface border border-omni-border rounded-xl overflow-hidden flex flex-col justify-between p-2.5">
+                    <div>
+                        <div class="relative aspect-square rounded-lg overflow-hidden mb-2 bg-black">
+                            <img src="${item.cover}" class="w-full h-full object-cover">
+                            <span class="absolute top-1.5 left-1.5 bg-amber-400 text-black text-[9px] font-black px-2 py-0.5 rounded-full">${item.type}</span>
+                        </div>
+                        <h4 class="text-xs font-bold text-white truncate">${item.title}</h4>
+                        <p class="text-[10px] text-slate-400 truncate">${item.sub || ''}</p>
+                    </div>
+                    <div class="flex items-center justify-between gap-1.5 mt-2 pt-2 border-t border-omni-border">
+                        ${item.trackData ? `<button onclick='playTrackObject(${JSON.stringify(item.trackData).replace(/'/g, "&#39;")})' class="flex-1 bg-emerald-500 text-black text-[10px] font-bold py-1 rounded-lg">Ascolta</button>` : `<span class="text-[10px] text-slate-400">Salvato</span>`}
+                        <button onclick="removeFavoriteIndex(${i})" class="text-rose-400 text-xs px-2 py-1"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function removeFavoriteIndex(idx) {
+            favorites.splice(idx, 1);
+            localStorage.setItem('omnihub_favorites_v2', JSON.stringify(favorites));
+            updateFavBadges();
+            renderLibraryView();
+        }
+
+        function clearAllFavorites() {
+            favorites = [];
+            localStorage.setItem('omnihub_favorites_v2', '[]');
+            updateFavBadges();
+            renderLibraryView();
+            showToast('Libreria svuotata');
+        }
+
+        /* =========================================================
+           INITIALIZATION ON LOAD
+           ========================================================= */
+        window.addEventListener('DOMContentLoaded', () => {
+            updateFavBadges();
+            loadHighScores();
+            renderRadioAndFullTracks();
+            renderOpenMovies();
+            renderBuiltinBooks();
+            switchMode('music');
+            searchMusicCatalog('Daft Punk The Weeknd');
+            searchTvShows('Cyberpunk');
+            fetchTopManga();
+        });
+    </script>
+</body>
+</html>
